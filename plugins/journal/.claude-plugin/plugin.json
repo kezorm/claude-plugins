@@ -1,0 +1,7 @@
+{
+  "name": "journal",
+  "displayName": "Journal",
+  "version": "0.1.0",
+  "description": "Keep an append-only engineering journal (JOURNAL.md) and promote durable decisions to ADRs. Ships a SessionEnd hook that warns when code changed but the journal didn't.",
+  "keywords": ["journal", "devlog", "adr", "documentation", "decision-record"]
+}

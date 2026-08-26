@@ -1,0 +1,13 @@
+{
+  "name": "kezorm",
+  "owner": {
+    "name": "Greg Mrozek"
+  },
+  "plugins": [
+    {
+      "name": "journal",
+      "source": "./plugins/journal",
+      "description": "Append-only engineering journal with a session-end reminder; promotes durable decisions to ADRs."
+    }
+  ]
+}
