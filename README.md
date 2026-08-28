@@ -2,11 +2,19 @@
 
 A Claude Code marketplace for durable engineering practices. Ships plugins that help teams keep verifiable records of what happened, why, and what they decided.
 
+## Why this exists
+
+The failure mode of any record is forgetting to keep it. The second failure mode is keeping it in a form nobody can search six months later — the details that would save the next person a day are in there somewhere, under 4,000 lines of chronology.
+
+Every plugin here writes plain markdown into a git repository. No app, no database, no schema to migrate when you discover you need a field nobody anticipated. Each one holds apart the two jobs a record has to do: capture what just happened, and answer a question asked years from now.
+
 ## Plugins
 
 ### [journal](plugins/journal)
 
 Keep an append-only engineering journal (devlog) with a SessionEnd hook that reminds you to record what happened. Promote significant decisions to Architecture Decision Records (ADRs) for durability.
+
+The split is the point: chronological entries capture what you did and what failed; ADRs keep decisions citable long after the narrative around them has scrolled away. The hook is advisory — it reminds you when code changed but the journal didn't, and never writes an entry itself.
 
 Install with:
 ```bash
@@ -18,10 +26,7 @@ Use `/journal` to write an entry or record a decision as an ADR. See [plugins/jo
 
 ### [asset-log](plugins/asset-log)
 
-Set up and maintain a durable markdown record for something you own — a vehicle,
-house, boat, or equipment — out of the scattered documents that accumulate around
-it. Weighted toward the initial setup, which is where it measurably helps; it
-steps aside once a record carries its own working rules.
+Set up and maintain a durable markdown record for something you own — a vehicle, house, boat, or equipment — out of the scattered documents that accumulate around it. Weighted toward the initial setup, which is where it measurably helps; it steps aside once a record carries its own working rules.
 
 Install with:
 ```bash
@@ -29,13 +34,7 @@ Install with:
 /plugin install asset-log@kezorm
 ```
 
-See [plugins/asset-log/README.md](plugins/asset-log/README.md) for details.
-
-## Why this exists
-
-The failure mode of any journal is forgetting to write it. Dead ends and verification details save the next person a day. But a journal is unsearchable by intent — six months on, nobody can find "why are we using X" in 4,000 lines of chronology.
-
-The journal plugin splits the work: chronological narrative entries capture what happened and what failed; Architecture Decision Records keep decisions durable and citable. The SessionEnd hook gently reminds you to update the journal if code changed.
+Use `/asset-log` to set up a new log or file documents into an existing one. See [plugins/asset-log/README.md](plugins/asset-log/README.md) for details.
 
 ## Adding more plugins
 
@@ -51,4 +50,4 @@ MIT. See [LICENSE](LICENSE).
 
 ## Credits
 
-The ADR calibration checks — the genericness test, two-credible-alternatives minimum, and "all-upside consequences mean you stopped early" — were sharpened after reading [atlas-adr](https://github.com/jeremylongshore/claude-code-plugins-plus-skills/tree/main/plugins/ai-agency/tonone/skills/atlas-adr) by tonone-ai (MIT).
+The journal plugin's ADR calibration checks — the genericness test, two-credible-alternatives minimum, and "all-upside consequences mean you stopped early" — were sharpened after reading [atlas-adr](https://github.com/jeremylongshore/claude-code-plugins-plus-skills/tree/main/plugins/ai-agency/tonone/skills/atlas-adr) by tonone-ai (MIT).
