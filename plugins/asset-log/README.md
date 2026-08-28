@@ -11,6 +11,15 @@ most software lasts.
 
 **See it in action:** [vehicle-silverado-example](https://github.com/kezorm/vehicle-silverado-example) — a real asset log for a vehicle.
 
+## Install
+
+```bash
+/plugin marketplace add kezorm/claude-plugins
+/plugin install asset-log@kezorm
+```
+
+Then use `/asset-log` to set up a new log or file documents into an existing one.
+
 ## What it's actually for
 
 Records rot in a specific way: documents accumulate, the conclusion each one

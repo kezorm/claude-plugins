@@ -5,7 +5,7 @@ Keep an append-only engineering journal (devlog) with a SessionEnd hook that rem
 ## Install
 
 ```bash
-/plugin marketplace add kezorm/claude-journal
+/plugin marketplace add kezorm/claude-plugins
 /plugin install journal@kezorm
 ```
 
