@@ -17,7 +17,7 @@ most software lasts.
 
 From another project in the same parent directory:
 ```bash
-/plugin marketplace add ../kezorm
+/plugin marketplace add ../claude-plugins
 /plugin install asset-log@kezorm
 ```
 

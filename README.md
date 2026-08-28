@@ -18,7 +18,7 @@ The split is the point: chronological entries capture what you did and what fail
 
 **Local installation:**
 ```bash
-/plugin marketplace add ../kezorm
+/plugin marketplace add ../claude-plugins
 /plugin install journal@kezorm
 ```
 
@@ -38,7 +38,7 @@ Set up and maintain a durable markdown record for something you own — a vehicl
 
 **Local installation:**
 ```bash
-/plugin marketplace add ../kezorm
+/plugin marketplace add ../claude-plugins
 /plugin install asset-log@kezorm
 ```
 

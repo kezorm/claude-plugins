@@ -8,7 +8,7 @@ Keep an append-only engineering journal (devlog) with a SessionEnd hook that rem
 
 From another project in the same parent directory:
 ```bash
-/plugin marketplace add ../kezorm
+/plugin marketplace add ../claude-plugins
 /plugin install journal@kezorm
 ```
 
