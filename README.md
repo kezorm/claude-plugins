@@ -18,9 +18,11 @@ The split is the point: chronological entries capture what you did and what fail
 
 **Local installation:**
 ```bash
-/plugin marketplace add file:///Users/greg/Projects/claude/kezorm
+/plugin marketplace add ../kezorm
 /plugin install journal@kezorm
 ```
+
+Or with an absolute path: `/plugin marketplace add file:///path/to/kezorm`
 
 **From community marketplace** (once approved):
 ```bash
@@ -36,9 +38,11 @@ Set up and maintain a durable markdown record for something you own — a vehicl
 
 **Local installation:**
 ```bash
-/plugin marketplace add file:///Users/greg/Projects/claude/kezorm
+/plugin marketplace add ../kezorm
 /plugin install asset-log@kezorm
 ```
+
+Or with an absolute path: `/plugin marketplace add file:///path/to/kezorm`
 
 **From community marketplace** (once approved):
 ```bash

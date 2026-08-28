@@ -15,16 +15,19 @@ most software lasts.
 
 ### Local installation (for development or testing)
 
-```bash
-/plugin marketplace add file:///Users/greg/Projects/claude/kezorm
-/plugin install asset-log@kezorm
-```
-
-Or from another project in the same parent directory:
+From another project in the same parent directory:
 ```bash
 /plugin marketplace add ../kezorm
 /plugin install asset-log@kezorm
 ```
+
+Or with an absolute path:
+```bash
+/plugin marketplace add file:///path/to/your/kezorm
+/plugin install asset-log@kezorm
+```
+
+Replace `/path/to/your/kezorm` with your local path to the repository.
 
 ### Community marketplace (once approved)
 
