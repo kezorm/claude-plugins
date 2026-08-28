@@ -3,10 +3,18 @@
 The version here matches the stamp at the top of `references/template/.claude/method.md`,
 which is copied verbatim into every record created from this skill.
 
-**To bring an established record up to date:** read the stamp in its
-`.claude/method.md`, apply the entries below that are newer than it, replace the
-file wholesale, then review that record's `CLAUDE.md` for anything the update
-now duplicates or contradicts. Bump the stamp.
+`.claude/method.md` is **byte-identical in every record** — it contains no
+placeholders and is never substituted. So the quickest check of whether a record
+is current is a checksum:
+
+```sh
+md5sum <record>/.claude/method.md references/template/.claude/method.md
+```
+
+**To bring an established record up to date:** read the version heading in its
+`.claude/method.md`, read the entries below that are newer, overwrite the file
+from the current skill, then review that record's `CLAUDE.md` for anything the
+update now duplicates or contradicts.
 
 Entries describe changes to the *method* — the conventions a record inherits.
 Skill-only changes (how the setup conversation runs, research guidance) are not
@@ -39,6 +47,12 @@ listed, because they don't propagate into records.
   `CLAUDE.md` with `@` so it loads deterministically. Record-specific rules stay
   in `CLAUDE.md`. This is what makes the method replaceable rather than
   something to reconcile by hand.
+- **No placeholders in the method.** It carries no `<<ASSET_NAME>>` and is never
+  substituted at setup, so it stays byte-identical across every record — which
+  is what makes `cp` a safe update and `md5sum` a valid currency check. The
+  version is a visible heading rather than an HTML comment, since comments are
+  stripped before reaching context and a session could not otherwise see which
+  version a record is on.
 
 ## v1.0.0
 
