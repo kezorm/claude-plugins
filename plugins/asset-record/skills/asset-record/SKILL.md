@@ -122,11 +122,24 @@ Then create only this:
 
 ```
 .
-├── _inbox/     drop zone; contents gitignored until triaged
-├── README.md   current status, open items, what's coming
-├── CLAUDE.md   the working rules, so they travel with the record
-└── bin/        the three scripts
+├── _inbox/            drop zone; contents gitignored until triaged
+├── README.md          current status, open items, what's coming
+├── CLAUDE.md          THIS record's specifics; imports the method below
+├── .claude/method.md  the shared method, verbatim, versioned
+└── bin/               the three scripts
 ```
+
+**Two files, deliberately.** `CLAUDE.md` opens with `@.claude/method.md` — an
+import, not a link. Imports are expanded into context at launch; a plain
+markdown link is only read at the model's discretion. Both files live in the
+record, so it stays self-contained.
+
+The split exists so the method stays **replaceable**. Keep `.claude/method.md`
+verbatim from [references/template/](references/template/) and never edit it —
+everything specific to this thing goes in `CLAUDE.md`. Updating an established
+record then becomes "replace one file, review the other for conflicts" rather
+than reconciling hundreds of lines of prose. That is also why it carries a
+version stamp.
 
 **Do not scaffold a folder tree.** It's tempting to create `purchase/`,
 `service/`, `reports/`, `reference/` up front — resist it. A vehicle, a house
@@ -136,7 +149,7 @@ where they don't belong because a slot exists. **Make a folder when a document
 arrives that needs one.**
 
 What makes separate records feel like siblings is not their directories — it's
-`CLAUDE.md` and a README that works the same way. So **write the working rules
+the imported method and a README that works the same way. So **write the working rules
 into the record itself.** A record depending on an assistant's memory or one
 machine isn't durable; anyone with a clone and a text editor should be able to
 pick it up completely.
