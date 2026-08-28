@@ -1,5 +1,6 @@
 {
   "name": "kezorm",
+  "description": "A Claude Code marketplace for durable engineering practices. Plugins that help teams keep verifiable records of what happened, why, and what they decided.",
   "owner": {
     "name": "Greg Mrozek"
   },
