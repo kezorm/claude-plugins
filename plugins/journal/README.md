@@ -4,10 +4,24 @@ Keep an append-only engineering journal (devlog) with a SessionEnd hook that rem
 
 ## Install
 
+### Local installation (for development or testing)
+
 ```bash
-/plugin marketplace add kezorm/claude-plugins
+/plugin marketplace add file:///Users/greg/Projects/claude/kezorm
 /plugin install journal@kezorm
 ```
+
+Or from another project in the same parent directory:
+```bash
+/plugin marketplace add ../kezorm
+/plugin install journal@kezorm
+```
+
+### Community marketplace (once approved)
+
+Coming soon — submission pending review.
+
+---
 
 Then use `/journal` to write an entry, or ask Claude to "write an ADR" to record a decision.
 

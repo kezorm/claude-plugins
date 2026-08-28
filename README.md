@@ -16,11 +16,13 @@ Keep an append-only engineering journal (devlog) with a SessionEnd hook that rem
 
 The split is the point: chronological entries capture what you did and what failed; ADRs keep decisions citable long after the narrative around them has scrolled away. The hook is advisory — it reminds you when code changed but the journal didn't, and never writes an entry itself.
 
-Install with:
+Install locally with:
 ```bash
-/plugin marketplace add kezorm/claude-plugins
+/plugin marketplace add file:///Users/greg/Projects/claude/kezorm
 /plugin install journal@kezorm
 ```
+
+Community marketplace coming soon (submission pending review).
 
 Use `/journal` to write an entry or record a decision as an ADR. See [plugins/journal/README.md](plugins/journal/README.md) for details.
 
@@ -28,11 +30,13 @@ Use `/journal` to write an entry or record a decision as an ADR. See [plugins/jo
 
 Set up and maintain a durable markdown record for something you own — a vehicle, house, boat, or equipment — out of the scattered documents that accumulate around it. Weighted toward the initial setup, which is where it measurably helps; it steps aside once a record carries its own working rules.
 
-Install with:
+Install locally with:
 ```bash
-/plugin marketplace add kezorm/claude-plugins
+/plugin marketplace add file:///Users/greg/Projects/claude/kezorm
 /plugin install asset-log@kezorm
 ```
+
+Community marketplace coming soon (submission pending review).
 
 Use `/asset-log` to set up a new log or file documents into an existing one. See [plugins/asset-log/README.md](plugins/asset-log/README.md) for details.
 
