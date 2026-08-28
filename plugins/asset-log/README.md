@@ -28,7 +28,17 @@ Or from another project in the same parent directory:
 
 ### Community marketplace (once approved)
 
-Coming soon — submission pending review.
+Once approved, set up the community marketplace (one time):
+```bash
+/plugin marketplace add anthropics/claude-plugins-community
+```
+
+Then install:
+```bash
+/plugin install asset-log@claude-community
+```
+
+(Submission pending review.)
 
 ---
 
