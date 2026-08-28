@@ -39,6 +39,14 @@ consulting this skill.** The record's own rules are more specific and take
 precedence. Duplicating the effort measurably costs more and produces nothing
 better. Bring this skill back only when the rules themselves need changing.
 
+**Updating an established record's method.** Its `.claude/method.md` is a
+byte-identical copy of [references/template/.claude/method.md](references/template/.claude/method.md),
+carrying a version heading. To bring it current: `md5sum` both to see whether it
+is stale, read [CHANGELOG.md](CHANGELOG.md) for what changed since its version,
+overwrite the file, then review that record's `CLAUDE.md` for anything the
+update now duplicates or contradicts. Never hand-edit `method.md` — a modified
+copy stops being replaceable, which is the only reason the split exists.
+
 ## A record has two jobs, and they run on different clocks
 
 **Telling you what needs attention now.** Ranked open items, what's overdue,
