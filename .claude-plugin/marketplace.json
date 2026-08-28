@@ -8,6 +8,11 @@
       "name": "journal",
       "source": "./plugins/journal",
       "description": "Append-only engineering journal with a session-end reminder; promotes durable decisions to ADRs."
+    },
+    {
+      "name": "asset-record",
+      "source": "./plugins/asset-record",
+      "description": "Set up and maintain a durable, self-contained record for something you own - vehicle, house, boat, equipment - from scattered documents, receipts, inspection reports and manuals."
     }
   ]
 }

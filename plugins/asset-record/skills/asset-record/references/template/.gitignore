@@ -1,0 +1,15 @@
+# OS cruft
+.DS_Store
+._*
+Thumbs.db
+
+# Editor
+*~
+*.swp
+
+# Inbox contents stay untracked until triaged and filed. Unfiled documents are
+# transient, and some carry personal or financial detail that shouldn't enter
+# git history before anyone has looked at it. See _inbox/README.md.
+_inbox/*
+!_inbox/README.md
+!_inbox/.gitkeep

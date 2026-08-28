@@ -16,6 +16,21 @@ Install with:
 
 Use `/journal` to write an entry or record a decision as an ADR. See [plugins/journal/README.md](plugins/journal/README.md) for details.
 
+### [asset-record](plugins/asset-record)
+
+Set up and maintain a durable markdown record for something you own — a vehicle,
+house, boat, or equipment — out of the scattered documents that accumulate around
+it. Weighted toward the initial setup, which is where it measurably helps; it
+steps aside once a record carries its own working rules.
+
+Install with:
+```bash
+/plugin marketplace add kezorm/kezorm-claude-plugins
+/plugin install asset-record@kezorm
+```
+
+See [plugins/asset-record/README.md](plugins/asset-record/README.md) for details.
+
 ## Why this exists
 
 The failure mode of any journal is forgetting to write it. Dead ends and verification details save the next person a day. But a journal is unsearchable by intent — six months on, nobody can find "why are we using X" in 4,000 lines of chronology.
