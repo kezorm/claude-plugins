@@ -10,7 +10,7 @@ Keep an append-only engineering journal (devlog) with a SessionEnd hook that rem
 
 Install with:
 ```bash
-/plugin marketplace add kezorm/claude-journal
+/plugin marketplace add kezorm/claude-plugins
 /plugin install journal@kezorm
 ```
 
@@ -25,7 +25,7 @@ steps aside once a record carries its own working rules.
 
 Install with:
 ```bash
-/plugin marketplace add kezorm/kezorm-claude-plugins
+/plugin marketplace add kezorm/claude-plugins
 /plugin install asset-log@kezorm
 ```
 
