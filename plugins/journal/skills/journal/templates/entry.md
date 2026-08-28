@@ -1,3 +1,5 @@
+<!-- journal entry template v1.0.0 -->
+
 ## YYYY-MM-DD — <short title: the thing this session was about>
 
 **Done**

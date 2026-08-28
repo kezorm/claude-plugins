@@ -98,6 +98,11 @@ An accepted ADR is not edited to change its decision. Write a new one and mark t
 | File | Use |
 |---|---|
 | `templates/journal-header.md` | header when creating a new journal |
-| `templates/entry.md` | one journal entry |
-| `templates/adr.md` | one ADR |
+| `templates/entry.md` | one journal entry (v1.0.0) |
+| `templates/adr.md` | one ADR (v1.0.0) |
+| `CHANGELOG.md` | template changes between versions |
 | `journal-reminder.sh` | SessionEnd hook: warns when code changed but the journal didn't |
+
+## Template versioning
+
+Entry and ADR templates carry version comments. When this skill updates a template structure, a new version appears in `CHANGELOG.md`. If your entries are using an older version, you can update by replacing the template portion with the current version. Most changes are backward-compatible; significant restructuring will be noted in the changelog.

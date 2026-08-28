@@ -1,3 +1,5 @@
+<!-- ADR template v1.0.0 -->
+
 # ADR-NNNN — <decision, stated as a fact not a question>
 
 - **Status:** Accepted <!-- Proposed | Accepted | Deprecated | Superseded by ADR-NNNN -->
