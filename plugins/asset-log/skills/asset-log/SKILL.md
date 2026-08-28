@@ -1,5 +1,5 @@
 ---
-name: asset-record
+name: asset-log
 description: Set up and maintain a durable, self-contained record for something the user owns — a vehicle, house, boat, rental property, tools, or equipment — from scattered documents, photos, receipts, inspection reports and manuals. Reach for this above all when a record is being started from nothing — someone just bought or inherited something, has a folder or pile of paperwork about it, and wants to stop losing track. Also use it when filing new documents into a record that has no working rules of its own, when an inspection or scan report needs interpreting, or when someone says they want to keep track of or stay on top of something they own — even if they never say repository, archive, or documentation. The first setup is where this matters most; a record that already carries its own rules mostly runs itself.
 ---
 

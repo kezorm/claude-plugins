@@ -1,4 +1,4 @@
-# Changelog — asset-record method
+# Changelog — asset-log method
 
 The version here matches the stamp at the top of `references/template/.claude/method.md`,
 which is copied verbatim into every record created from this skill.

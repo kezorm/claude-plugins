@@ -16,7 +16,7 @@ Install with:
 
 Use `/journal` to write an entry or record a decision as an ADR. See [plugins/journal/README.md](plugins/journal/README.md) for details.
 
-### [asset-record](plugins/asset-record)
+### [asset-log](plugins/asset-log)
 
 Set up and maintain a durable markdown record for something you own — a vehicle,
 house, boat, or equipment — out of the scattered documents that accumulate around
@@ -26,10 +26,10 @@ steps aside once a record carries its own working rules.
 Install with:
 ```bash
 /plugin marketplace add kezorm/kezorm-claude-plugins
-/plugin install asset-record@kezorm
+/plugin install asset-log@kezorm
 ```
 
-See [plugins/asset-record/README.md](plugins/asset-record/README.md) for details.
+See [plugins/asset-log/README.md](plugins/asset-log/README.md) for details.
 
 ## Why this exists
 

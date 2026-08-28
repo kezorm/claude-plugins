@@ -1,4 +1,4 @@
-# asset-record
+# asset-log
 
 Sets up and maintains a durable record for something you own — a vehicle, a
 house, a boat, a rental unit, equipment — out of the scattered documents,
