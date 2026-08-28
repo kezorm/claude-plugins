@@ -15,6 +15,10 @@ The hard part is not filing. It's that records rot: a document gets saved, the
 conclusion it implies never reaches the summary anyone actually reads, and six
 months later the folder is full and useless. Everything below is aimed at that.
 
+## See it in action
+
+[vehicle-silverado-example](https://github.com/kezorm/vehicle-silverado-example) is a real asset log for a vehicle — shows the structure, conventions, and what a mature record looks like.
+
 ## Where this skill actually pays — read this first
 
 **Setting a record up well is worth far more than maintaining one.** That isn't a

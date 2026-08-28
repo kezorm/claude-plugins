@@ -9,6 +9,8 @@ to migrate when you discover you need a field nobody anticipated. It stays
 readable by a person with a text editor in twenty years, which is longer than
 most software lasts.
 
+**See it in action:** [vehicle-silverado-example](https://github.com/kezorm/vehicle-silverado-example) — a real asset log for a vehicle.
+
 ## What it's actually for
 
 Records rot in a specific way: documents accumulate, the conclusion each one
