@@ -117,6 +117,32 @@ document's value is in its tables, or when a spot-check fails.
 `bin/extract-text` flags files whose layout looks tabular so you know which ones
 deserve the scrutiny.
 
+### The same check, at the other end
+
+Extraction is one place figures go wrong; **writing them up is the other.** When
+a document gathers numbers from several sources — a spec comparison, a fitment
+sheet, a parts table — **read every figure back out of the file it came from
+before committing.**
+
+```sh
+chk () { grep -qi "$1" "$2" && echo "OK   $3" || echo "FAIL $3"; }
+chk "3 1/3 turns"  manuals/workshop-manual.txt  "steering, turns lock to lock"
+chk "11.18in"      manuals/workshop-manual.txt  "front disc diameter"
+chk "61.750"       peer-build/track-table.txt   "track width"
+```
+
+Seconds to run, and it catches three failures that all look identical in a
+finished document: **the value that drifted while being retyped**, **the quote
+paraphrased into something the source does not actually say**, and **the figure
+attributed to the wrong document.**
+
+In one real pass, fifteen figures were checked this way and one failed — a
+quotation that had been tightened in the writing until the source no longer
+contained it. Nothing about the sentence looked wrong.
+
+**Do it before the commit, not after.** A reader years later has no way to tell
+which figures were checked and which were trusted.
+
 ## Transcribing images
 
 A photograph of a data plate is not data until the numbers are text. Put the
@@ -132,6 +158,12 @@ image in the record, then transcribe it into a table beneath the link:
 ```
 
 Now it's greppable, quotable, and usable by someone who can't open images.
+
+> **Transcribing is not the same as confirming.** What you have written down is
+> *your reading of a photograph*, and it belongs to the owner to check before it
+> becomes a fact — the identifiers especially, since a wrong one misroutes every
+> future lookup. See
+> [a reading off a photograph is a proposal](evidence.md#a-reading-off-a-photograph-is-a-proposal-not-an-observation).
 
 ## Capture more than seems useful
 

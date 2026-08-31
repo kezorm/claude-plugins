@@ -22,6 +22,38 @@ listed, because they don't propagate into records.
 
 ---
 
+## v1.3.0
+
+> **`method.md` moves to v1.3.0**, so established records are now out of date.
+> Overwrite `.claude/method.md` from this skill and review the record's
+> `CLAUDE.md` for rules this now duplicates — several records grew a private
+> version of the photograph rule below, and the record-specific copy should be
+> trimmed to whatever is genuinely local to that item.
+
+- **Anything read off a photograph is a proposal, not an observation.** The
+  method already said a photographed label isn't data until transcribed; it did
+  not say that the transcription is itself a claim needing confirmation. This
+  broadens it past numbers to **part identification, condition, variant, and
+  presence**, and asks that `[confirmed — owner]` stay visibly distinct from an
+  assistant's reading.
+- **"I cannot see it in this photograph" is not "it is not there."** The
+  dangerous direction, and the same logical error the method already names for
+  records. Reporting a part as missing sends the owner hunting for something
+  never lost and writes a false gap into the record.
+- **A `[verify]` tag does not rescue a wrong reading.** On a value nobody will
+  independently re-derive, it is a wrong claim with a disclaimer, and it
+  propagates into digests and commit messages just as fast as a confirmed one.
+  Ask instead.
+- **Verify figures against their source before publishing them.** The method
+  covered *extraction* going wrong; this covers *write-up* going wrong. Grep
+  each figure back out of the file it came from before committing — it catches
+  values that drift in transcription, quotes paraphrased past what the source
+  says, and figures attributed to the wrong document. Worked example and a
+  one-line shell helper in `references/intake.md`.
+
+Fuller treatment of the photograph rule, with a two-row worked example of the
+same component misread twice in two days, is in `references/evidence.md`.
+
 ## v1.1.0
 
 - **Two jobs, two clocks.** Added the distinction between the triage view

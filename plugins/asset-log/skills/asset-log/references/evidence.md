@@ -54,6 +54,58 @@ proof of a clean record.
 Column headers matter too: label it **"Last documented"**, not "Last done." Use
 **"no record"**, not "never."
 
+## A reading off a photograph is a proposal, not an observation
+
+Photographs are how most of a record gets captured, and they are the easiest
+place to be confidently wrong. This applies to **more than numbers**: which part
+you are looking at, what condition it is in, which of two variants it is, and
+whether a component is in the frame at all.
+
+**The rule:** an image is evidence to be checked against the thing itself, never
+a source to be quoted. Crop it, put it in front of the owner, and ask.
+
+**Keep the reader distinct from the reading.** `[confirmed — owner]` and
+`[confirmed]` are different claims. Whether a human looked at the object or an
+assistant looked at a picture of it must stay visible, because only one of them
+can be re-checked cheaply later.
+
+### Asserting absence is the dangerous direction
+
+This is the same logical error as *absence of a record is not evidence of
+absence*, in a different medium:
+
+> **"I cannot see it in this photograph" is not "it is not there."**
+
+Reporting a part as missing is worse than misidentifying one. It sends the owner
+hunting for something that was never lost, and it writes a false gap into a
+record that is supposed to be the reliable account.
+
+**Say what the frames do and do not show**, and let the item settle the rest.
+
+### A `[verify]` tag does not rescue a wrong reading
+
+Tagging a guess and publishing it anyway feels like diligence and is not. On a
+value nobody will ever independently re-derive, `[verify]` is **a wrong claim
+with a disclaimer attached** — and it propagates into digests, commit messages
+and summaries exactly as fast as a confirmed one.
+
+Ask instead. The cost of asking is one message; the cost of a wrong identifier
+in a permanent record is every decision made against it afterwards.
+
+### What this looks like in practice
+
+From a vehicle record, over two days, on a single set of photographs of one
+component:
+
+| Assistant's reading | Reality | How it was caught |
+|---|---|---|
+| Two purchased parts *"are not identifiable in any frame"* | Both were plainly in frame | Owner looked at the photographs |
+| A pinion flange is **round**, so the unit is make A | The flange is **square** — make B, the opposite conclusion | Owner walked out to the shelf |
+
+Both were tagged as proposals. Both were wrong. **Neither was caught by
+tagging** — both were caught by a human checking the object. The tag recorded
+uncertainty; it did not reduce it.
+
 ## When sources conflict
 
 Record the conflict and name the authoritative source. Don't silently pick.
