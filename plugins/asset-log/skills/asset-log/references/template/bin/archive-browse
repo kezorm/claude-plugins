@@ -1,0 +1,540 @@
+#!/usr/bin/env python3
+"""Browse everything this record has archived, in a browser, offline.
+
+    bin/archive-browse                 build the index, serve it, open a browser
+    bin/archive-browse --index-only    just rebuild the index
+    bin/archive-browse --port 9000     serve somewhere else
+
+Archived pages are saved with their images and stylesheets, but opening one
+straight off disk is unreliable: a file:// page cannot always load subresources
+from sibling directories, so pages lose their images and CSS depending on the
+browser. Served over http:// that restriction does not exist and archived pages
+behave like ordinary web pages in anything.
+
+So this serves the record on the loopback interface and writes an index of what
+is in it. Nothing leaves the machine -- the bind address is 127.0.0.1 on
+purpose, because the default binds every interface and would put a private
+record on the local network.
+
+What it does NOT do, because no viewer can:
+  - repair pages that were incomplete when captured
+  - restore JavaScript-driven behaviour, which archiving deliberately discards
+  - search. That is `grep` over the .txt file beside every page, which is the
+    whole reason those files exist.
+
+Stdlib only, so it keeps working.
+"""
+import argparse
+import collections
+import functools
+import hashlib
+import html
+import http.server
+import os
+import re
+import socketserver
+import sys
+import threading
+import urllib.parse
+import webbrowser
+from urllib.parse import quote
+
+INDEX = '.archive-index.html'
+SKIP_DIRS = {'.git', '.venv', '__pycache__', 'node_modules', '_inbox'}
+
+
+def repo_root():
+    here = os.path.dirname(os.path.abspath(__file__))
+    return os.path.dirname(here)
+
+
+def title_of(path):
+    """A page's <title>, else its filename."""
+    try:
+        head = open(path, encoding='utf-8', errors='replace').read(20000)
+    except OSError:
+        return os.path.basename(path)
+    m = re.search(r'(?is)<title[^>]*>(.*?)</title>', head)
+    if not m:
+        return os.path.basename(path)
+    t = html.unescape(re.sub(r'\s+', ' ', m.group(1))).strip()
+    return t or os.path.basename(path)
+
+
+def words_in(txt):
+    try:
+        return len(open(txt, encoding='utf-8', errors='replace').read().split())
+    except OSError:
+        return 0
+
+
+# A site group longer than this starts collapsed.
+COLLAPSE_OVER = 8
+
+HOSTISH = re.compile(r'^[a-z0-9][a-z0-9.-]*\.[a-z]{2,}$', re.I)
+
+
+def site_of(rel):
+    """The source host a saved page came from, read off its path.
+
+    wget writes pages under their hostname, so the path already carries the
+    answer -- except for Wayback captures, which nest the real host inside
+    web.archive.org/web/<timestamp>/https%3A/<realhost>/... Grouping those
+    under "web.archive.org" would file every rescued page together regardless
+    of where it actually came from, which is the opposite of useful.
+
+    Some folders hold pages saved flat, with no host component at all; those
+    fall back to the folder name.
+    """
+    parts = rel.split(os.sep)[:-1]
+    hosts = [x for x in parts if HOSTISH.match(x)]
+    if not hosts:
+        return parts[-1] if parts else '(root)'
+    # "www.dazecars.com" and "dazecars.com" are one site, and wget will use
+    # whichever the page linked to -- which put two of one article's images in
+    # a separate group from the article. Fold the www. away.
+    strip = lambda h: h[4:] if h.startswith('www.') else h
+    if hosts[0].endswith('archive.org'):
+        real = [h for h in hosts[1:] if not h.endswith('archive.org')]
+        return (strip(real[0]) + '  · via Wayback') if real else 'web.archive.org'
+    return strip(hosts[0])
+
+
+def human(b):
+    """Bytes as something a person can compare at a glance."""
+    if b >= 1 << 30:
+        return '%.1f GB' % (b / (1 << 30))
+    if b >= 1 << 20:
+        return '%.1f MB' % (b / (1 << 20))
+    return '%d KB' % max(1, round(b / 1024))
+
+
+def group_root(root, rel):
+    """The directory a group's files live under.
+
+    NOT the common path of its documents: a WordPress blog keeps its pages at
+    <host>/2010/12/slug/ and its photographs at <host>/wp-content/uploads/, so
+    a common path of the documents excludes every image and reports a folder as
+    a hundredth of its real size. The host directory is the right boundary --
+    and where a page was saved flat, with no host in the path, the folder it
+    sits in is.
+    """
+    parts = rel.split(os.sep)
+    for i, x in enumerate(parts[:-1]):
+        if HOSTISH.match(x):
+            return os.path.join(root, *parts[:i + 1])
+    return os.path.join(root, *parts[:-1]) if len(parts) > 1 else root
+
+
+def account(root, items):
+    """Charge every byte in the archive to exactly one document or group.
+
+    Three rules, in order:
+
+    1. A file referenced by one or more pages is split evenly between them, so
+       a logo on eight pages is counted once, not eight times.
+    2. Anything left over -- stylesheets, orphaned images, files nothing points
+       at -- is charged to the group whose directory contains it.
+    3. Files under no group's directory are ignored; they are not archive.
+
+    The point is that the arithmetic closes: rows sum to their group, groups
+    sum to the header, and the header is what deleting the lot would reclaim.
+    """
+    docs = [(g, r) for g, rows in items.items() for r in rows]
+    refs, users = {}, collections.Counter()
+    for _, r in docs:
+        p = os.path.join(root, r[1])
+        d = os.path.dirname(p)
+        try:
+            body = open(p, encoding='utf-8', errors='replace').read()
+        except OSError:
+            refs[r[1]] = set()
+            continue
+        found = set()
+        for u in re.findall(r'(?i)<img[^>]+src="([^"]+)"', body):
+            u = html.unescape(u).split('#')[0]
+            if not u or u.startswith(('http://', 'https://', 'data:', '//')):
+                continue
+            t = os.path.normpath(os.path.join(d, urllib.parse.unquote(u)))
+            if os.path.isfile(t):
+                found.add(t)
+        refs[r[1]] = found
+        for t in found:
+            users[t] += 1
+
+    size = {}
+    def sz(t):
+        if t not in size:
+            try:
+                size[t] = os.path.getsize(t)
+            except OSError:
+                size[t] = 0
+        return size[t]
+
+    weight = {}
+    for _, r in docs:
+        p = os.path.join(root, r[1])
+        own = sz(p) + sz(os.path.splitext(p)[0] + '.txt')
+        weight[r[1]] = own + sum(sz(t) / users[t] for t in refs[r[1]])
+
+    # rule 2: leftovers to the group that contains them
+    claims = sorted(
+        {(os.path.normpath(group_root(root, r[1])), (g, r[4])) for g, r in docs},
+        key=lambda c: -len(c[0]))
+    counted = set(users) | {os.path.join(root, r[1]) for _, r in docs}
+    counted |= {os.path.splitext(os.path.join(root, r[1]))[0] + '.txt'
+                for _, r in docs}
+    overhead = collections.Counter()
+    for dp, dirnames, fs in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS
+                       and not d.startswith('.')]
+        here = os.path.normpath(dp)
+        owner = next((k for pre, k in claims
+                      if here == pre or here.startswith(pre + os.sep)), None)
+        if owner is None:
+            continue
+        for f in fs:
+            t = os.path.join(dp, f)
+            if t not in counted:
+                overhead[owner] += sz(t)
+    return weight, overhead
+
+
+def is_feed(path):
+    """True if this .html file is really RSS/Atom XML."""
+    try:
+        with open(path, 'rb') as fh:
+            head = fh.read(200).lstrip()
+    except OSError:
+        return False
+    return head[:5] == b'<?xml' or head[:4].lower() == b'<rss' or \
+        head[:5].lower() == b'<feed'
+
+
+def collect(root, min_words):
+    """Archived documents: a page or PDF with a .txt extraction beside it.
+
+    That pairing is the convention `archive-page` and `extract-text` both
+    follow, and it is a good proxy for "something was deliberately archived
+    here" rather than "a stylesheet happens to live in this folder".
+    """
+    items, hidden, seen = {}, 0, {}
+    for dp, dirnames, fs in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS
+                       and not d.startswith('.')]
+        for f in sorted(fs):
+            if not f.lower().endswith(('.html', '.htm', '.pdf')):
+                continue
+            p = os.path.join(dp, f)
+            txt = os.path.splitext(p)[0] + '.txt'
+            if not os.path.exists(txt):
+                continue
+            # RSS/Atom saved with an .html name. WordPress publishes a feed for
+            # the site, every category, every tag, every author and every post
+            # -- 86 of them on one mirror -- and wget saves each as index.html
+            # inside a feed/ directory. A browser then tries to parse XML as
+            # HTML and renders a mess, which is how these were noticed.
+            #
+            # They are also pure duplication: a feed carries the post body in
+            # <content:encoded>, so every word is already in a page archived
+            # beside it. Not documents; they do not belong in a reading index.
+            if is_feed(p):
+                hidden += 1
+                continue
+            n = words_in(txt)
+            rel = os.path.relpath(p, root)
+            if n < min_words:
+                hidden += 1
+                continue
+            group = rel.split(os.sep)[0]
+            if group.startswith('reference') and os.sep in rel:
+                group = os.sep.join(rel.split(os.sep)[:2])
+            # Collapse byte-identical duplicates. A WordPress mirror emits
+            # the same post at ?replytocom=N for every comment and again at
+            # ?p=NNNN, so one krissmotors article was listed NINE times under
+            # an identical title -- 253 rows for 196 documents. The copies are
+            # kept on disk (deleting committed files reclaims nothing) but the
+            # index shows the canonical one and counts the rest.
+            key = hashlib.md5(
+                open(txt, 'rb').read()).hexdigest() if os.path.exists(txt) else rel
+            canonical = '?' not in rel
+            if key in seen:
+                prev = seen[key]
+                prev['alts'] += 1
+                # prefer the tidy URL: no query string, then the shortest
+                if canonical and ('?' in prev['row'][1]) or (
+                        canonical == ('?' not in prev['row'][1])
+                        and len(rel) < len(prev['row'][1])):
+                    prev['row'] = (prev['row'][0], rel,
+                                   os.path.relpath(txt, root), n,
+                                   site_of(rel), os.path.getsize(p))
+                continue
+            row = (title_of(p) if not f.lower().endswith('.pdf')
+                   else os.path.basename(p), rel, os.path.relpath(txt, root), n,
+                   site_of(rel), os.path.getsize(p))
+            entry = {'row': row, 'alts': 0, 'group': group}
+            seen[key] = entry
+            items.setdefault(group, []).append(entry)
+    # flatten: row tuple + how many identical copies it stands for
+    for g in items:
+        items[g] = [e['row'] + (e['alts'],) for e in items[g]]
+    return items, hidden
+
+
+CSS = """
+:root{--bg:#f4f4f1;--fg:#141414;--muted:#4a4a48;--card:#fff;--line:#c9c9c4;--link:#0b4fa8}
+@media(prefers-color-scheme:dark){:root{--bg:#131517;--fg:#eceded;--muted:#b4b8bb;
+  --card:#1e2124;--line:#3a3f44;--link:#7fb8ff}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);
+     font:16px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+a{color:var(--link)}
+header{position:sticky;top:0;background:var(--card);border-bottom:1px solid var(--line);
+       padding:12px 20px;z-index:9}
+header b{font-size:15px}
+main{max-width:960px;margin:0 auto;padding:22px 20px 80px}
+input[type=search]{width:100%;padding:9px 12px;font-size:15px;margin-top:9px;
+  border:1px solid var(--line);border-radius:7px;background:var(--bg);color:var(--fg)}
+h2{font-size:13px;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);
+   margin:26px 0 8px;border-bottom:1px solid var(--line);padding-bottom:5px}
+.row{background:var(--card);border:1px solid var(--line);border-radius:9px;
+     padding:10px 14px;margin:7px 0}
+.row:hover{border-color:var(--link)}
+.head{display:flex;align-items:baseline;gap:12px}
+.title{font-size:15px;font-weight:600;text-decoration:none;flex:1;min-width:0}
+.title:hover{text-decoration:underline}
+.tag{font-size:12px;color:var(--muted);white-space:nowrap;flex:none}
+.meta{font-size:12.5px;color:var(--muted);word-break:break-all;margin-top:2px}
+.note{font-size:13.5px;color:var(--muted);margin:6px 0 0}
+details.site{margin:7px 0}
+details.site>summary{cursor:pointer;list-style:none;padding:7px 12px;
+  background:var(--card);border:1px solid var(--line);border-radius:9px;
+  font-size:14px;font-weight:600;display:flex;align-items:center;gap:9px}
+details.site>summary::-webkit-details-marker{display:none}
+details.site>summary::before{content:'\u25B8';color:var(--muted);font-weight:400;
+  flex:none;transition:transform .12s}
+details.site[open]>summary::before{transform:rotate(90deg)}
+details.site>summary:hover{border-color:var(--link)}
+details.site .count{margin-left:auto;font-size:12px;font-weight:400;
+  color:var(--muted);flex:none}
+details.site>.row{margin-left:16px}
+.ctl{display:flex;gap:14px;margin:10px 0 0;font-size:13px}
+.ctl button{font:inherit;color:var(--link);background:none;border:none;
+  padding:0;cursor:pointer;text-decoration:underline}
+"""
+
+JS = """
+const q=document.getElementById('q');
+const sites=[...document.querySelectorAll('details.site')];
+
+// Filtering has to fight the collapsing: a match hidden inside a shut
+// <details> is a match the user cannot see, so matched groups are forced open
+// while a query is active and returned to their default state when it clears.
+function apply(){
+  const v=q.value.trim().toLowerCase();
+  sites.forEach(d=>{
+    let hit=0;
+    d.querySelectorAll('.row').forEach(r=>{
+      const m = !v || r.dataset.k.includes(v);
+      r.hidden = !m; if(m) hit++;
+    });
+    d.hidden = hit===0;
+    d.open = v ? hit>0 : d.dataset.open==='1';
+    const c=d.querySelector('.count');
+    if(!c.dataset.full) c.dataset.full=c.textContent;
+    c.textContent = v ? hit+' of '+d.querySelectorAll('.row').length
+                      : c.dataset.full;
+  });
+  document.querySelectorAll('section').forEach(s=>{
+    s.hidden = ![...s.querySelectorAll('details.site')].some(d=>!d.hidden);
+  });
+}
+q.addEventListener('input',apply);
+
+document.getElementById('all').onclick=()=>sites.forEach(d=>{if(!d.hidden)d.open=true});
+document.getElementById('none').onclick=()=>sites.forEach(d=>d.open=false);
+q.focus();
+"""
+
+
+def build_index(root, min_words):
+    items, hidden = collect(root, min_words)
+    total = sum(len(v) for v in items.values())
+
+    # Group by (section, site) once and measure once. Both the header total and
+    # every per-group figure come from this same pass -- computing them
+    # separately is how they end up disagreeing.
+    by_site = {}
+    for group, rows in items.items():
+        for r in sorted(rows, key=lambda r: -r[3]):
+            by_site.setdefault((group, r[4]), []).append(r)
+    weight, overhead = account(root, items)
+    disk = {k: sum(weight[r[1]] for r in rows) + overhead[k]
+            for k, rows in by_site.items()}
+    grand = sum(disk.values())
+    out = ['<!doctype html><meta charset=utf-8><title>Archived content</title>',
+           '<meta name=viewport content="width=device-width,initial-scale=1">',
+           '<style>%s</style>' % CSS,
+           '<header><b>Archived content — %d documents · %s</b>'
+           '<input type=search id=q placeholder="Filter by title or path…">'
+           '</header><main>' % (total, human(grand)),
+           '<p class=note>Served over http:// so pages load their own images and '
+           'stylesheets. Every entry has a text extraction beside it — for '
+           'searching the contents rather than the titles, grep those. '
+           'To browse the files directly instead, '
+           '<a href="/reference/">start here</a>.</p>',
+           '<p class=note>Sizes are the page <em>plus the images it pulls</em>. '
+           'An image shared between pages is split between them, so nothing is '
+           'double-counted: rows add up to their group, groups add up to the '
+           'total above, and that total is what deleting the lot would '
+           'reclaim. A group also carries any stylesheets and unreferenced '
+           'files in its folder, which is why its total is a little more than '
+           'its rows.</p>',
+           '<p class=ctl>Grouped by source site. '
+           '<button id=all>expand all</button>'
+           '<button id=none>collapse all</button></p>']
+    if hidden:
+        out.append('<p class=note>%d item(s) hidden: RSS/Atom feeds saved as '
+                   '.html (duplicates of pages archived beside them), and '
+                   'documents under %d words — login pages and site furniture. '
+                   '<code>--min-words 0</code> relaxes the word limit.</p>'
+                   % (hidden, min_words))
+    for group in sorted(items):
+        keys = [k for k in by_site if k[0] == group]
+        gtotal = sum(disk[k] for k in keys)
+        rows_n = sum(len(by_site[k]) for k in keys)
+        out.append('<section><h2>%s — %d · %s</h2>'
+                   % (html.escape(group), rows_n, human(gtotal)))
+
+        # Biggest group first: on this page the question is usually "what is
+        # taking the room", not "what is alphabetically first".
+        for key in sorted(keys, key=lambda k: -disk[k]):
+            srows = by_site[key]
+            site = key[1]
+            # Show a short list straight away; collapse anything long enough to
+            # be what made the page unreadable in the first place.
+            openit = len(srows) <= COLLAPSE_OVER
+            out.append(
+                '<details class=site%s data-open="%d"><summary>%s'
+                '<span class=count>%d · %s</span></summary>'
+                % (' open' if openit else '', 1 if openit else 0,
+                   html.escape(site), len(srows), human(disk[key])))
+
+            for title, rel, txt, n, _site, nbytes, alts in srows:
+                key_s = (title + ' ' + rel).lower().replace('"', '')
+                # A <div>, not an <a>. The row carries a second link (to the
+                # text extraction) and an anchor inside an anchor is invalid
+                # HTML -- browsers close the outer one and the layout falls
+                # apart.
+                #
+                # URL-escape before HTML-escaping. wget's --restrict-file-names
+                # writes Wayback captures to paths holding a LITERAL percent
+                # sign -- ".../20240915160007/https%3A/example.com/...". An
+                # href carrying that raw is percent-DECODED by the server back
+                # to "https:/", which does not exist, so every Wayback-captured
+                # page 404s from the index. quote() turns the % into %25 and
+                # the round trip lands on the real file. html.escape alone does
+                # not do this.
+                out.append(
+                    '<div class=row data-k="%s">'
+                    '<div class=head><a class=title href="/%s">%s</a>'
+                    '<span class=tag>%s words · %s%s · '
+                    '<a href="/%s">text</a></span>'
+                    '</div><div class=meta>%s</div></div>'
+                    % (html.escape(key_s), html.escape(quote(rel)),
+                       html.escape(title[:120]),
+                       format(n, ','), human(weight.get(rel, nbytes)),
+                       (' · %d copies' % (alts + 1)) if alts else '',
+                       html.escape(quote(txt)), html.escape(rel)))
+            out.append('</details>')
+        out.append('</section>')
+    out.append('</main><script>%s</script>' % JS)
+    path = os.path.join(root, INDEX)
+    with open(path, 'w', encoding='utf-8') as fh:
+        fh.write('\n'.join(out))
+    return path, total, hidden
+
+
+class QuietHandler(http.server.SimpleHTTPRequestHandler):
+    """Serve the record, with the index -- not a directory listing -- at "/".
+
+    The root of this repository is a pile of folders. Landing there means
+    hunting for the archived page you want through the filesystem, which is
+    precisely the job the index exists to do. So "/" serves the index, and the
+    raw tree stays reachable underneath for anything the index does not list.
+    """
+
+    def send_head(self):
+        if self.path in ('/', '/index.html'):
+            self.path = '/' + INDEX
+        return super().send_head()
+
+    def log_message(self, *a):
+        pass
+
+
+def main():
+    # Unbuffered-ish: this prints a URL and then blocks forever serving, so a
+    # buffered stdout means the user stares at nothing when the output is piped
+    # or captured.
+    try:
+        sys.stdout.reconfigure(line_buffering=True)
+    except AttributeError:
+        pass
+
+    ap = argparse.ArgumentParser(add_help=True)
+    ap.add_argument('--port', type=int, default=8765)
+    ap.add_argument('--min-words', type=int, default=100)
+    ap.add_argument('--index-only', action='store_true')
+    ap.add_argument('--no-open', action='store_true')
+    args = ap.parse_args()
+
+    root = repo_root()
+    path, total, hidden = build_index(root, args.min_words)
+    print('indexed %d document(s) -> %s' % (total, os.path.relpath(path, root)))
+    if args.index_only:
+        return 0
+
+    handler = functools.partial(QuietHandler, directory=root)
+    socketserver.TCPServer.allow_reuse_address = True
+
+    # Walk up until something is free. A busy port almost always means a copy
+    # of this is already running -- a stale one from an earlier session, or
+    # another terminal -- and refusing to start is a worse answer than moving
+    # over by one and saying so.
+    httpd = port = None
+    for candidate in range(args.port, args.port + 12):
+        try:
+            httpd = socketserver.TCPServer(('127.0.0.1', candidate), handler)
+            port = candidate
+            break
+        except OSError:
+            continue
+    if httpd is None:
+        print('ports %d-%d are all busy on 127.0.0.1.' % (args.port, args.port + 11))
+        print('probably stale servers from an earlier run:')
+        print('  lsof -nP -iTCP:%d-%d -sTCP:LISTEN' % (args.port, args.port + 11))
+        print('  pkill -f bin/archive-browse')
+        return 1
+    if port != args.port:
+        print('port %d was busy — using %d instead '
+              '(another copy is probably still running)' % (args.port, port))
+    args.port = port
+
+    url = 'http://127.0.0.1:%d/' % args.port
+    print('serving %s' % root)
+    print('  %s' % url)
+    print('  loopback only — nothing is exposed to the network. ctrl-c to stop.')
+    if not args.no_open:
+        threading.Timer(0.4, lambda: webbrowser.open(url)).start()
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        print('\nstopped')
+    finally:
+        httpd.server_close()
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

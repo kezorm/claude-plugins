@@ -1,0 +1,181 @@
+#!/usr/bin/env python3
+"""Check that archived web pages RENDER, not merely that they exist.
+
+Every fault below produces a page of the right size, with a clean text
+extraction, whose subresources all serve 200 -- and which a reader opens to
+find blank, unstyled, or missing its pictures. They are invisible to any check
+that does not ask "what would a browser draw?"
+
+    bin/archive-check                # the whole record
+    bin/archive-check reference/fuel # one folder
+
+Written after four such faults were found by a human opening pages that had
+passed every mechanical check. Exit status is 1 if anything material is wrong,
+so it can gate a commit.
+
+Deliberately stdlib-only and read-only: it reports, it never edits. The repairs
+belong to archive-page, which applies them at fetch time.
+"""
+import collections
+import html
+import os
+import re
+import sys
+import urllib.parse
+
+SKIP_DIRS = {'.git', '.venv', '__pycache__', 'node_modules', '_inbox'}
+
+# "src" needs a boundary that excludes "data-src", or every lazy-loaded tag
+# looks like it already has a source. \b is not enough: "-" is a non-word
+# character, so \bsrc= happily matches data-src=. That mistake once made a scan
+# report zero affected pages while 26 images were broken.
+SRC = re.compile(r'(?i)(?<![-\w])src\s*=\s*["\']([^"\']*)["\']')
+LAZY = re.compile(r'(?i)\bdata-(?:src|original|lazy-src|url)\s*=\s*["\']([^"\']+)["\']')
+CSS = re.compile(r'(?is)<link[^>]+rel=["\']stylesheet["\'][^>]*href=["\']([^"\']+)["\']')
+CSS2 = re.compile(r'(?is)<link[^>]+href=["\']([^"\']+)["\'][^>]*rel=["\']stylesheet["\']')
+
+# Furniture. Missing avatars and tracking pixels are not a broken archive; a
+# missing photograph is. Without this split the real number drowns: on one
+# record 95 pages "had missing images" and only 13 had missing CONTENT.
+JUNK = re.compile(
+    r'(?i)avatar|emoji|smilie|reaction|sprite|spacer|blank|pixel|1x1|logo|icon|'
+    r'banner|badge|privacyoptions|/assets/|/js/|\.js|/styles/|button|/ui/|'
+    r'gravatar|_static/|wp-content/(plugins|themes)')
+
+
+def visible_words(s):
+    s = re.sub(r'(?is)<(script|style|head)\b.*?</\1>', ' ', s)
+    return len(html.unescape(re.sub(r'(?s)<[^>]+>', ' ', s)).split())
+
+
+def resolves(page_dir, url):
+    t = os.path.normpath(os.path.join(
+        page_dir, urllib.parse.unquote(url.split('?')[0].split('#')[0])))
+    return os.path.isfile(t)
+
+
+def check(path):
+    raw = open(path, 'rb').read()
+    s = raw.decode('utf-8', 'replace')
+    d = os.path.dirname(path)
+    bad = {}
+
+    # RSS/Atom saved with an .html name: not a page, and it duplicates a post
+    # archived beside it. Informational.
+    head = raw.lstrip()[:6].lower()
+    if head[:5] == b'<?xml' or head[:4] == b'<rss' or head[:5] == b'<feed':
+        return {'feed (not a page)': 1}
+
+    # bytes lost to a text-mode round trip
+    n = raw.count(b'\xef\xbf\xbd')
+    if n:
+        bad['CORRUPT: U+FFFD replacement chars'] = n
+
+    # content a JS-enabled browser hides, on a site that renders in JavaScript
+    spans = [(m.start(), m.end())
+             for m in re.finditer(r'(?is)<noscript[^>]*>.*?</noscript>', s)]
+    inside = sum(visible_words(s[a:b]) for a, b in spans)
+    outside = visible_words(re.sub(r'(?is)<noscript[^>]*>.*?</noscript>', ' ', s))
+    if inside > 100 and inside > outside:
+        bad['BLANK: content trapped in <noscript>'] = inside
+
+    # a loading overlay the site's own script would have taken down
+    if (re.search(r'(?i)id=["\']?d-splash', s)
+            or (re.search(r'(?i)html\s*\{[^}]*overflow-y:\s*hidden\s*!important', s)
+                and re.search(r'(?i)(100vh|100dvh)', s)
+                and re.search(r'(?i)z-index:\s*\d{3,}', s))):
+        if 'defuse-overlay' not in s:
+            bad['BLANK: un-defused full-viewport overlay'] = 1
+
+    # images the browser will never be told to request
+    lazy = 0
+    for m in re.finditer(r'(?is)<img\b[^>]*>', s):
+        tag = m.group(0)
+        a = LAZY.search(tag)
+        if not a or a.group(1).startswith(('data:', 'http', '//')):
+            continue
+        cur = SRC.search(tag)
+        if cur and not cur.group(1).startswith('data:'):
+            continue
+        if resolves(d, a.group(1)):
+            lazy += 1
+    if lazy:
+        bad['INVISIBLE: lazy images with no src'] = lazy
+
+    # content photographs referenced and absent
+    miss = 0
+    for u in SRC.findall(s):
+        u = html.unescape(u)
+        if not u.strip() or u.startswith(('http', '//', 'data:', 'file:')):
+            continue
+        if JUNK.search(u) or not re.search(r'(?i)\.(jpe?g|png|gif|webp)(\?|$)', u):
+            continue
+        if not resolves(d, u):
+            miss += 1
+    if miss:
+        bad['missing content image'] = miss
+
+    # stylesheets asked for, none held. A page with no <link> at all is fine --
+    # plenty of older technical sites simply have no CSS.
+    sheets = [html.unescape(u) for u in CSS.findall(s) + CSS2.findall(s)]
+    local = [u for u in sheets if not u.startswith(('http', '//'))]
+    held = [u for u in local if resolves(d, u)]
+    if sheets and not held:
+        bad['UNSTYLED: no stylesheet resolves'] = len(sheets)
+    elif local and len(held) < len(local):
+        bad['some stylesheets missing'] = len(local) - len(held)
+
+    # a big file that draws almost nothing
+    if len(raw) > 40000 and outside < 30 and inside == 0:
+        bad['BLANK: renders near-empty'] = outside
+    return bad
+
+
+def main(argv):
+    roots = argv[1:] or ['.']
+    found = collections.defaultdict(list)
+    scanned = 0
+    for root in roots:
+        for dp, dirs, fs in os.walk(root):
+            dirs[:] = [x for x in dirs
+                       if x not in SKIP_DIRS and not x.startswith('.')]
+            for f in fs:
+                if not f.lower().endswith(('.html', '.htm')):
+                    continue
+                p = os.path.join(dp, f)
+                scanned += 1
+                for k, v in check(p).items():
+                    found[k].append((v, p))
+
+    print('%d page(s) scanned\n' % scanned)
+    if not found:
+        print('nothing to report.')
+        return 0
+    serious = 0
+    for k in sorted(found, key=lambda k: -len(found[k])):
+        rows = found[k]
+        flag = k.split(':')[0]
+        # Exit non-zero only for pages a reader cannot USE. Unstyled is ugly,
+        # not unreadable -- and on a Wayback capture whose CSS was never
+        # crawled it is also unfixable, so failing on it would train people to
+        # ignore the exit status.
+        if flag in ('CORRUPT', 'BLANK', 'INVISIBLE'):
+            serious += len(rows)
+        print('%-42s %d page(s)' % (k, len(rows)))
+        if k.startswith('feed'):
+            continue
+        for v, p in sorted(rows, key=lambda r: -r[0])[:6]:
+            print('     %-6s %s' % (v, p[:92]))
+        if len(rows) > 6:
+            print('     ... %d more' % (len(rows) - 6))
+        print()
+    if serious:
+        print('%d page(s) will not render properly.' % serious)
+        return 1
+    print('No page is unreadable. Remaining entries are cosmetic or are things')
+    print('the source itself no longer has -- check each is recorded as such.')
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main(sys.argv))

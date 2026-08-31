@@ -1,12 +1,21 @@
 #!/usr/bin/env python3
-"""Verify every relative markdown link in a record resolves to a real file.
+"""Verify every relative markdown link in a record resolves -- file AND anchor.
 
 Records accumulate cross-references fast, and a broken link is the first sign a
-file was moved without updating what pointed at it. Run before every commit --
-it is instant and catches real breakage.
+file was moved, or a heading reworded, without updating what pointed at it. Run
+before every commit -- it is instant and catches real breakage.
 
-Fenced code blocks are skipped: documentation shows example links to files that
-deliberately do not exist, and flagging those trains you to ignore the output.
+Anchors are checked, not just paths. A link to `notes.md#the-part-that-matters`
+is broken if that heading was renamed, even though `notes.md` still exists --
+and that kind of rot is invisible until someone follows the link and lands at
+the top of the wrong document. Heading slugs follow GitHub's algorithm:
+lowercase, drop punctuation and symbols, spaces to hyphens, `-1` `-2` on
+duplicates. Note that an emoji is dropped but the invisible variation selector
+after it is NOT, so `## <warning emoji> Foo` anchors as `#<VS16>-foo`.
+
+Fenced code blocks are skipped, for headings and links alike: documentation
+shows example links to files that deliberately do not exist, and flagging those
+trains you to ignore the output.
 
 Usage:  bin/check-links [root]     (default: current directory)
 Exit:   0 if all links resolve, 1 otherwise
@@ -14,10 +23,53 @@ Exit:   0 if all links resolve, 1 otherwise
 import os
 import re
 import sys
+import unicodedata
 
 SKIP_DIRS = {'.git', 'node_modules', '.venv', '__pycache__'}
 LINK = re.compile(r'\[[^\]]*\]\(([^)]+)\)')
 FENCE = re.compile(r'^\s*(```|~~~)')
+HEADING = re.compile(r'^(#{1,6})\s+(.*?)\s*#*\s*$')
+
+
+def slugify(text):
+    """Reproduce GitHub's heading-anchor algorithm.
+
+    Lowercase, strip punctuation and symbols, turn each space into a hyphen.
+    Hyphens and underscores survive; so do combining marks, which is why the
+    variation selector trailing an emoji ends up in the anchor while the emoji
+    itself does not.
+    """
+    out = []
+    for ch in text.strip().lower():
+        if ch in '-_':
+            out.append(ch)
+        elif ch.isspace():
+            out.append('-')
+        elif unicodedata.category(ch)[0] in ('P', 'S'):
+            continue          # punctuation and symbols, emoji included
+        else:
+            out.append(ch)
+    return ''.join(out)
+
+
+def anchors(text):
+    """Every anchor a markdown file offers, with GitHub's duplicate suffixes."""
+    seen, found = {}, set()
+    in_fence = False
+    for line in text.splitlines():
+        if FENCE.match(line):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        m = HEADING.match(line)
+        if not m:
+            continue
+        slug = slugify(m.group(2))
+        n = seen.get(slug, 0)
+        seen[slug] = n + 1
+        found.add(slug if n == 0 else f'{slug}-{n}')
+    return found
 
 
 def links_outside_code(text):
@@ -37,6 +89,21 @@ def main() -> int:
     root = sys.argv[1] if len(sys.argv) > 1 else '.'
     ok = 0
     broken = []
+    bad_anchors = []
+    md = {}
+
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
+        for name in filenames:
+            if name.endswith('.md'):
+                path = os.path.join(dirpath, name)
+                try:
+                    md[os.path.normpath(path)] = open(
+                        path, encoding='utf-8', errors='replace').read()
+                except OSError:
+                    pass
+
+    heads = {p: anchors(t) for p, t in md.items()}
 
     for dirpath, dirnames, filenames in os.walk(root):
         dirnames[:] = [d for d in dirnames if d not in SKIP_DIRS]
@@ -49,21 +116,33 @@ def main() -> int:
             except OSError:
                 continue
             for target in links_outside_code(text):
-                if target.startswith(('http://', 'https://', 'mailto:', '#')):
+                if target.startswith(('http://', 'https://', 'mailto:')):
                     continue
-                clean = target.split('#')[0].split(' ')[0].strip()
-                if not clean or clean.startswith('<<'):
+                head, _, frag = target.partition('#')
+                clean = head.split(' ')[0].strip()
+                if clean.startswith('<<') or frag.startswith('<<'):
                     continue  # unfilled template placeholder
-                resolved = os.path.normpath(os.path.join(dirpath, clean))
-                if os.path.exists(resolved):
-                    ok += 1
+                if clean:
+                    resolved = os.path.normpath(os.path.join(dirpath, clean))
+                    if not os.path.exists(resolved):
+                        broken.append((path, target))
+                        continue
                 else:
-                    broken.append((path, target))
+                    resolved = os.path.normpath(path)  # same-file anchor
+                    if not frag:
+                        continue
+                if frag and resolved in heads and frag not in heads[resolved]:
+                    bad_anchors.append((path, target))
+                    continue
+                ok += 1
 
     for path, target in broken:
-        print(f'BROKEN  {path} -> {target}')
-    print(f'\nlinks ok={ok} broken={len(broken)}')
-    return 1 if broken else 0
+        print(f'BROKEN FILE    {path} -> {target}')
+    for path, target in bad_anchors:
+        print(f'BROKEN ANCHOR  {path} -> {target}')
+    print(f'\nlinks ok={ok} broken={len(broken) + len(bad_anchors)}'
+          f'  (files={len(broken)} anchors={len(bad_anchors)})')
+    return 1 if broken or bad_anchors else 0
 
 
 if __name__ == '__main__':

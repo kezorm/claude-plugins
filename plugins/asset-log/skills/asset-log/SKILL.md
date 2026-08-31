@@ -208,6 +208,7 @@ some will be sensitive before anyone has looked at them.
 | A filesystem and shell | Everything | On a surface with no filesystem (claude.ai chat), this skill mostly can't run. Say so plainly and offer what *is* possible: read the documents the user pastes or uploads, produce the analysis and a README they can save themselves. |
 | `pdftotext` (poppler) | Text beside every PDF | Highest-value habit, so don't skip silently. Offer the install (`brew install poppler` / `apt install poppler-utils`); if refused or unavailable, read PDFs directly and transcribe key figures into markdown by hand so the numbers are still searchable. |
 | `docling` *(optional)* | Reliable table extraction | Not required. `uvx docling --to md <pdf>` needs no install but downloads models on first run. Worth it when a document's meaning is in its tables; overkill otherwise. |
+| `wget` | `bin/archive-page` — fetching a web page with its images | Only needed when archiving from the web. `brew install wget` / `apt install wget`. Without it, `curl` the HTML alone and say plainly that the page's images were not kept — a partial archive that claims to be whole is worse than none. |
 | `git` | History, and answering "what did we know when" | Plain dated folders work. Say the tradeoff once — no history, no diffs — and move on. Don't insist. |
 | Delete permission on the folder | `git` needs to unlink `.git/index.lock` | If git operations fail with "Operation not permitted", request delete access for the record folder before continuing. |
 | Subagents | The research phase | Do the research inline, sequentially. Slower, same output. |
@@ -314,6 +315,37 @@ they cover more ground and their sources can be cross-checked. Useful axes:
 
 Demand that findings come back marked by confidence and with sources, and
 propagate them like any other intake.
+
+## Archiving what you find on the web
+
+Research turns up a page that answers a question about this thing. **Bookmarking
+it is not keeping it.** Measured on one record: of 48 links kept six years
+earlier, **~40% had rotted** — 8 survived only in the Wayback Machine and 5 were
+gone from both. A record that needs a working internet connection to answer a
+question is not a durable record.
+
+So `curl` it in, `bin/extract-text` beside it, and cite the local path; keep the
+URL as provenance. Then grep the local copy before searching the web again.
+
+Three things to know before the first fetch:
+
+- **Ask what you are actually archiving.** Repeatedly, a linked page is one part
+  of something larger and nothing on it says so: a 22-page thread saved as page
+  1, one article of an eight-part series, two bookmarks that were an 86-page
+  site. Look for pagination, "next / part II" links, and an index on the same
+  site — *then* fetch the set. This is the cheapest and highest-value check
+  there is.
+- **The failure mode is not "the fetch errored."** It is a page that sits on
+  disk at a plausible size, extracts cleanly, and is quietly missing its
+  images, its later pages, or — four separate ways — its ability to render at
+  all. Run `bin/archive-check` afterwards.
+- **A live page beats a snapshot.** Reach for the Wayback when a page is gone,
+  not when it is merely awkward to fetch.
+
+Full method, eleven traps and how each was found:
+[references/archiving-web-content.md](references/archiving-web-content.md).
+Tools: `bin/archive-page` fetches and repairs, `bin/archive-check` verifies,
+`bin/archive-browse` serves the archive so a human can read it back.
 
 ## Before sharing or publishing
 

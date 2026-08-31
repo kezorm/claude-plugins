@@ -1,0 +1,352 @@
+#!/usr/bin/env python3
+"""Archive a web page into this record -- HTML, its images, and a .txt beside it.
+
+The standing rule here is that information lives in the repo, not in the cloud
+(see CLAUDE.md, "Archive locally. Always."). This is the tool for the common
+case: a forum thread, a technical article or a build write-up that answers a
+question about this car and will not necessarily exist next year.
+
+It wraps wget rather than reimplementing a crawler, because wget already solves
+the parts that are easy to get wrong -- page requisites, link rewriting so the
+saved copy opens offline, retries, and polite rate limiting.
+
+    bin/archive-page reference/wiring/wiring-101 https://example.com/thread/
+
+Images come down by default. That is deliberate: on a build reference the
+photographs usually ARE the content, and a wiring diagram or a picture of a
+fabricated bracket cannot be recovered from the text. Use --no-images when a
+page is purely prose, or when a forum's avatars and smilies would dominate.
+
+Every saved page gets a .txt beside it, for the same reason every PDF here does
+-- an archive that cannot be grepped does not get read.
+
+NOTE ON SIZE: this writes whatever the page carries, which on an image-heavy
+site can be hundreds of megabytes. Binary files never leave git history once
+committed, so check `du -sh` on the output and decide BEFORE the first commit.
+"""
+import gzip
+import html
+import os
+import re
+import shutil
+import subprocess
+import urllib.parse
+import sys
+
+UA = ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 '
+      '(KHTML, like Gecko) Chrome/126.0 Safari/537.36')
+
+# Weight that is never content. Measured on a jaguarforums thread: of 3.3 MB
+# saved, the entire body text was 12 KB and ONE photograph was a real
+# attachment -- the rest was ad trackers, webfonts and JavaScript bundles.
+# Rejecting those took the same thread to well under a megabyte with nothing
+# lost. CSS is kept, because the saved page should still be readable offline.
+JUNK = ('*avatar*,*smilie*,*banner*,*advert*,*ads/*,'
+        '*.js,*.mjs,*.woff,*.woff2,*.ttf,*.otf,*.eot,*fontawesome*.svg,'
+        '*.mp4,*.mov,*.avi,*.zip,*.exe')
+
+# Analytics and ad networks. Nothing here is ever part of a page's meaning.
+TRACKERS = ('googletagmanager.com,google-analytics.com,doubleclick.net,'
+            'permutive.com,scorecardresearch.com,adservice.google.com,'
+            'facebook.net,connect.facebook.net,quantserve.com,adnxs.com')
+
+
+def ungzip_in_place(paths, dest, urls):
+    """Repair pages a server insisted on gzipping.
+
+    Some servers answer every request with Content-Encoding: gzip whatever the
+    client asks for. wget then writes "page.html.gz" -- still compressed, and
+    not parsed as HTML, so none of the page's images are fetched. Nothing about
+    it looks wrong: the file is there and it is the right size.
+
+    So: decompress, drop the .gz, and go back for the requisites using the
+    now-readable local copy as the link source.
+    """
+    fixed = []
+    for f in list(paths):
+        if not f.endswith('.gz'):
+            continue
+        try:
+            body = gzip.open(f, 'rb').read()
+        except OSError:
+            continue                      # a genuine .gz download; leave it
+        plain = f[:-3]
+        with open(plain, 'wb') as fh:
+            fh.write(body)
+        os.remove(f)
+        fixed.append(plain)
+
+    for plain, url in zip(fixed, urls):
+        subprocess.run(['wget', '--page-requisites', '--convert-links',
+                        '--span-hosts', '--restrict-file-names=windows',
+                        '--reject', JUNK, '--exclude-domains', TRACKERS,
+                        '--tries=3', '--timeout=30', '-e', 'robots=off',
+                        '--user-agent=' + UA, '-P', dest,
+                        '--force-html', '--base=' + url, '-i', plain],
+                       capture_output=True, text=True)
+    return fixed
+
+
+# Overlays a site's own JavaScript would take down once the app boots. We do
+# not archive JavaScript, so they stay up forever -- a full-viewport layer over
+# a page whose content, images and all, sit intact underneath. Discourse's
+# splash is the one that bit this record: #d-splash is 100vw x 100dvh at
+# z-index 1001, and it also sets html{overflow-y:hidden}, so the page is not
+# merely covered but unscrollable. Caught only because a human opened it.
+OVERLAY_CSS = (
+    '\n<style data-archive-page="defuse-overlay">\n'
+    '#d-splash,.d-splash,#preloader,.preloader-image,'
+    '.loading-overlay,.page-loading-overlay{display:none!important}\n'
+    'html,body{overflow-y:auto!important;height:auto!important}\n'
+    '</style>\n')
+
+
+def defuse_overlays(path: str) -> bool:
+    """Disable JS-removed splash screens in a saved page.
+
+    Deliberately additive: appends a stylesheet rather than editing the page's
+    own markup, so what the server sent is still all there and the change is
+    one greppable block a reader can find and judge.
+    """
+    # BINARY, not text. Reading an archived page as UTF-8 and writing it back
+    # is not a round trip: it rewrites CRLF to LF and turns every byte that is
+    # not valid UTF-8 into U+FFFD. Done once by accident here, that silently
+    # removed 5,787 bytes and 599 carriage returns from a committed forum page
+    # -- the archive is supposed to hold what the server sent, byte for byte.
+    with open(path, 'rb') as fh:
+        raw = fh.read()
+    body = raw.decode('utf-8', 'replace')   # for MATCHING only; never written
+    if b'data-archive-page="defuse-overlay"' in raw:
+        return False
+
+    # Be strict about what counts. A first attempt matched any element whose
+    # class mentioned "preloader" and rewrote 13 pages, of which 12 needed
+    # nothing: on one forum "preloader" is a display:none div and a 44px
+    # spinner, and on another it appears only as the body class
+    # "av-preloader-disabled". An overlay worth defusing has to actually cover
+    # the viewport -- so require a named splash, or an element sized in
+    # viewport units that is also stacked above the page.
+    splash = re.search(r'(?i)id=["\']?d-splash', body)
+    generic = (re.search(r'(?i)html\s*\{[^}]*overflow-y:\s*hidden\s*!important',
+                         body)
+               and re.search(r'(?i)(100vh|100dvh)', body)
+               and re.search(r'(?i)z-index:\s*\d{3,}', body))
+    if not (splash or generic):
+        return False
+    # Splice into the BYTES, leaving every other byte exactly as it was.
+    css = OVERLAY_CSS.encode('utf-8')
+    m = re.search(rb'(?i)</body>', raw)
+    raw = raw[:m.start()] + css + raw[m.start():] if m else raw + css
+    with open(path, 'wb') as fh:
+        fh.write(raw)
+    return True
+
+
+# An <img> may carry no real src at all: lazy-loading scripts keep the URL in
+# data-src (or data-original / data-lazy-src / data-url) and copy it across as
+# the image scrolls into view. No JavaScript is archived, so nothing ever
+# copies it and the picture never loads -- on a saved forum thread the text and
+# the photographs are all present on disk and the page shows none of them.
+#
+# Note "src" needs a boundary that excludes "data-src", or every lazy tag looks
+# like it already has one. That mistake made a first scan report zero affected
+# pages.
+LAZY_ATTR = re.compile(r'(?i)\bdata-(?:src|original|lazy-src|url)\s*=\s*'
+                       r'["\']([^"\']+)["\']')
+HAS_SRC = re.compile(r'(?i)(?<![-\w])src\s*=')
+
+
+def promote_lazy_images(path: str) -> int:
+    """Give lazy-loaded <img> tags a real src, so they display without JS."""
+    with open(path, 'rb') as fh:
+        raw = fh.read()
+    body = raw.decode('utf-8', 'replace')
+    out, changed, last = [], 0, 0
+    for m in re.finditer(r'(?is)<img\b[^>]*>', body):
+        tag = m.group(0)
+        a = LAZY_ATTR.search(tag)
+        if not a or a.group(1).startswith('data:'):
+            continue
+        # Only promote a URL we actually hold. Pointing src at a file that was
+        # never fetched turns an invisible placeholder into a broken-image
+        # icon, which is worse than leaving it alone -- doing this blind to one
+        # Wayback capture broke 22 of its 26 images. Remote URLs are skipped
+        # for the same reason plus a better one: an archive must not need the
+        # network to render.
+        target = a.group(1)
+        if target.startswith(('http://', 'https://', '//')):
+            continue
+        on_disk = os.path.normpath(os.path.join(
+            os.path.dirname(path), urllib.parse.unquote(target.split('?')[0])))
+        if not os.path.isfile(on_disk):
+            continue
+        cur = re.search(r'(?i)(?<![-\w])src\s*=\s*["\']([^"\']*)["\']', tag)
+        if cur and not cur.group(1).startswith('data:'):
+            continue                      # already points at something real
+        out.append(body[last:m.start()])
+        if cur:
+            # a 1x1 transparent GIF standing in until the script swaps it.
+            # Reaction sprites use the same placeholder but carry no lazy
+            # attribute, so they are left alone by the check above.
+            tag = tag[:cur.start(1)] + a.group(1) + tag[cur.end(1):]
+            out.append(tag)
+        else:
+            out.append('<img src="%s"%s' % (a.group(1), tag[4:]))
+        last = m.end()
+        changed += 1
+    if not changed:
+        return 0
+    out.append(body[last:])
+    with open(path, 'wb') as fh:
+        fh.write(''.join(out).encode('utf-8'))
+    return changed
+
+
+def unwrap_noscript(path: str) -> bool:
+    """Make crawler-only content visible in a saved page.
+
+    Discourse and other app-shell sites put their whole server-rendered thread
+    inside <noscript> and build the real page in JavaScript from an API. We do
+    not archive JavaScript -- so a browser with JS ENABLED hides the <noscript>
+    content by definition, the app never boots, and the page renders BLANK.
+    1,506 of one thread's 1,530 words sat inside that block.
+
+    Unwrapping the tags leaves the content on the page for good. Applied only
+    when the block really is the article -- more than 100 words, and more
+    inside than outside -- so an ordinary "please enable JavaScript" notice is
+    left alone.
+    """
+    with open(path, 'rb') as fh:
+        raw = fh.read()
+    if b'archive-page-unwrapped-noscript' in raw:
+        return False
+    body = raw.decode('utf-8', 'replace')
+    spans = [(m.start(), m.end())
+             for m in re.finditer(r'(?is)<noscript[^>]*>.*?</noscript>', body)]
+    if not spans:
+        return False
+
+    def words(x):
+        x = re.sub(r'(?is)<(script|style|head)\b.*?</\1>', ' ', x)
+        return len(html.unescape(re.sub(r'(?s)<[^>]+>', ' ', x)).split())
+
+    inside = sum(words(body[a:b]) for a, b in spans)
+    outside = words(re.sub(r'(?is)<noscript[^>]*>.*?</noscript>', ' ', body))
+    if inside < 100 or inside <= outside:
+        return False
+
+    # bytes only -- decoding and re-encoding a saved page loses CRLF and any
+    # byte that is not valid UTF-8
+    out = re.sub(rb'(?i)<noscript[^>]*>', b'<!--archive-page-unwrapped-noscript-->', raw)
+    out = re.sub(rb'(?i)</noscript>', b'<!--/archive-page-unwrapped-noscript-->', out)
+    with open(path, 'wb') as fh:
+        fh.write(out)
+    return True
+
+
+def to_text(path: str) -> int:
+    """Write a plain-text rendering beside an archived HTML file.
+
+    Deliberately crude -- no dependency. Scripts, styles and markup go; block
+    elements become line breaks so paragraphs and forum posts stay separated.
+    Returns the word count.
+
+    <noscript> is UNWRAPPED, not discarded. Discourse forums (jag-lovers among
+    them) render the whole thread server-side inside a single <noscript> block
+    and build the visible page in JavaScript from it. Stripping noscript the
+    way you strip <script> therefore throws away the entire post text and
+    leaves a 24-word .txt beside a 400 KB .html -- an archive that looks taken
+    and cannot be grepped. Caught 2026-08-29 on the Spectra fuel-tank thread.
+    """
+    raw = open(path, encoding='utf-8', errors='replace').read()
+    t = re.sub(r'(?is)</?noscript[^>]*>', ' ', raw)
+    t = re.sub(r'(?is)<(script|style|svg|head).*?</\1>', ' ', t)
+    t = re.sub(r'(?i)<br\s*/?>', '\n', t)
+    t = re.sub(r'(?i)</(p|div|tr|li|h[1-6]|blockquote|table)>', '\n', t)
+    t = re.sub(r'(?s)<[^>]+>', ' ', t)
+    t = html.unescape(t)
+    t = re.sub(r'[ \t\r\xa0]+', ' ', t)
+    lines = [ln.strip() for ln in t.splitlines()]
+    body = '\n'.join(ln for ln in lines if ln)
+    body = re.sub(r'\n{3,}', '\n\n', body)
+    out = os.path.splitext(path)[0] + '.txt'
+    with open(out, 'w', encoding='utf-8') as fh:
+        fh.write(body)
+    return len(body.split())
+
+
+def main() -> int:
+    argv = [a for a in sys.argv[1:] if not a.startswith('--')]
+    images = '--no-images' not in sys.argv
+    if len(argv) < 2:
+        print(__doc__.strip())
+        return 2
+    if not shutil.which('wget'):
+        print('wget not found.  brew install wget')
+        return 1
+
+    dest, urls = argv[0], argv[1:]
+    os.makedirs(dest, exist_ok=True)
+
+    # Ask for uncompressed HTML. Some servers (rbracing-rsr.com among them)
+    # answer a plain request with gzip anyway; wget then saves a ".html.gz" it
+    # cannot parse, so the page's images are silently never fetched. The file
+    # looks fine on disk -- it is the requisites that go missing.
+    cmd = ['wget', '--header=Accept-Encoding: identity',
+           '--adjust-extension', '--convert-links', '--span-hosts',
+           '--restrict-file-names=windows', '--no-parent',
+           '--tries=3', '--timeout=30', '--wait=0.4', '--random-wait',
+           '-e', 'robots=off', '--user-agent=' + UA, '-P', dest]
+    if images:
+        cmd += ['--page-requisites', '--reject', JUNK,
+                '--exclude-domains', TRACKERS]
+    cmd += urls
+
+    before = {os.path.join(dp, f) for dp, _, fs in os.walk(dest) for f in fs}
+    r = subprocess.run(cmd, capture_output=True, text=True)
+    after = {os.path.join(dp, f) for dp, _, fs in os.walk(dest) for f in fs}
+    new = sorted(after - before)
+
+    # wget exits 8 on a server error for any single requisite -- an advert or a
+    # tracking pixel 404ing is normal and does not mean the page failed.
+    if not new:
+        print('nothing saved.  wget said:')
+        print('\n'.join(r.stderr.strip().splitlines()[-8:]))
+        return 1
+
+    fixed = ungzip_in_place(new, dest, urls)
+    if fixed:
+        new = sorted({os.path.join(dp, f)
+                      for dp, _, fs in os.walk(dest) for f in fs} - before)
+        print('  repaired %d gzipped page(s) and re-fetched their images'
+              % len(fixed))
+
+    pages = [f for f in new if f.lower().endswith(('.html', '.htm'))]
+    lazy = sum(promote_lazy_images(p) for p in pages)
+    if lazy:
+        print('  gave %d lazy-loaded image(s) a real src -- they would not have'
+              ' displayed' % lazy)
+    unwrapped = sum(unwrap_noscript(p) for p in pages)
+    if unwrapped:
+        print('  unwrapped crawler-only <noscript> content on %d page(s) --'
+              ' they would have rendered blank' % unwrapped)
+    defused = sum(defuse_overlays(p) for p in pages)
+    if defused:
+        print('  defused a JS-removed overlay on %d page(s)' % defused)
+    for p in pages:
+        words = to_text(p)
+        print('  %s  (%s words)' % (os.path.relpath(p, dest), format(words, ',')))
+
+    total = sum(os.path.getsize(f) for f in new if os.path.exists(f))
+    imgs = [f for f in new
+            if f.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.webp'))]
+    print('\n%d file(s), %d page(s), %d image(s), %.1f MB in %s'
+          % (len(new), len(pages), len(imgs), total / 1e6, dest))
+    if total > 50e6:
+        print('\nOver 50 MB. Decide whether this belongs in the repo BEFORE')
+        print('committing -- binaries stay in history in every clone forever.')
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

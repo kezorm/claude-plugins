@@ -62,3 +62,52 @@ file before filing it; text extraction beside every PDF; transcribe photographed
 labels; confidence tagging with `[confirmed]` / `[verify]`; absence of a record
 is not evidence of absence; name which source governs a conflict; structure
 emerges rather than being scaffolded; self-containment; the pre-sharing audit.
+
+## v1.2.0
+
+> **`method.md` stays at v1.1.0** — it is deliberately unchanged, so an
+> established record is still current and `md5sum` still answers "am I on the
+> latest method?" correctly. This release adds a reference and four scripts
+> around it. (`plugin.json` was on 1.0.0 and had drifted; it is now 1.2.0.)
+
+**Archiving from the web, and the tools to do it.** Research constantly turns up
+a page that answers a question, and a bookmark is not a copy: measured on one
+record, **~40% of six-year-old links had rotted** — some recoverable only from
+the Wayback Machine, some gone entirely.
+
+New reference: `references/archiving-web-content.md` — the full method, written
+from ~250 pages archived into a working record and eleven distinct ways of
+getting it wrong. Deliberately a *reference*, not part of `method.md`: it is
+loaded only when a session actually archives something, so records about houses
+and camera kits pay nothing for it.
+
+Four scripts, in `scripts/` and `references/template/bin/`:
+
+- **`archive-page`** — wraps `wget`, rejects trackers and webfonts, writes a
+  `.txt` beside every page, and repairs four faults at fetch time that each
+  produce a page which looks archived and will not render: content served only
+  inside `<noscript>`, a loading overlay the site's own JavaScript would have
+  removed, lazy-loaded `<img>` tags carrying no `src`, and gzipped HTML wget
+  cannot parse.
+- **`archive-check`** — verifies that saved pages *render*, not merely exist.
+  Exits non-zero when a page is genuinely unreadable. This exists because four
+  such faults were found by a human opening pages that had passed every other
+  check.
+- **`archive-browse`** — serves the record over `http://` with an index, because
+  a `file://` page cannot reliably load its own images. Groups by source site,
+  collapses byte-identical CMS aliases (one WordPress post was stored **nine**
+  times), hides RSS feeds saved as `.html`, and shows each page's size
+  *including the images it pulls*.
+- **`check-links`** — now validates the `#fragment` as well as the path. On one
+  record that found five dead cross-references pointing at reworded headings,
+  which nothing else surfaces: the file exists and the link looks fine.
+
+`method.md` is unchanged, so established records need no migration — copy the
+new scripts into `bin/` and add a line to `CLAUDE.md` if the record archives
+web pages.
+
+**Two rules worth stating outside the reference**, because they cost real data
+here: **never round-trip an archived page through text I/O** — reading it as
+UTF-8 and writing it back rewrites CRLF and turns invalid bytes into U+FFFD,
+which silently stripped 5,787 bytes from a committed page — and **triage before
+the first commit**, because afterwards deleting reclaims nothing.
