@@ -7,7 +7,7 @@ repository**.
 @.claude/method.md
 
 > `.claude/method.md` is a verbatim copy of the asset-log skill's template,
-> currently **v1.3.0**. Don't edit it — record-specific rules go here instead.
+> currently **v1.4.0**. Don't edit it — record-specific rules go here instead.
 > To bring it up to date, replace that file wholesale from the current skill and
 > review this one for conflicts.
 

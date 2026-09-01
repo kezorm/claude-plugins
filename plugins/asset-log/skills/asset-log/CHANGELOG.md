@@ -22,6 +22,45 @@ listed, because they don't propagate into records.
 
 ---
 
+## v1.4.0
+
+> **`method.md` moves to v1.4.0**, so established records are now out of date.
+> Overwrite `.claude/method.md` from this skill and review the record's
+> `CLAUDE.md`.
+
+**Corrections are governed by reliance, not by wrongness.** The old rule said a
+wrong conclusion should be "withdrawn in place rather than deleted," on the
+grounds that preserving the correction "tells a reader the record is maintained
+by someone who checks." In practice that rule fired on everything, including
+ordinary drafting — a misread label, a number transcribed wrong, a conclusion
+that lasted an hour. The result was documents carrying a running commentary on
+their own past mistakes, which is harder to read and teaches the reader the
+wrong fact on the way to the right one.
+
+The rule now turns on one question: **did anyone rely on it?**
+
+- **Nobody acted on it** — correct it silently. The old text is in the commit
+  history, dated, with a message saying what changed. Filing step 11 already
+  requires that message.
+- **Someone acted on it** — money spent, work skipped, a part ordered, an
+  inspection not done — the fact that it was believed is part of the item's
+  history and goes in the **log** as a dated entry, not as an annotation inside
+  a reference document.
+- **Dated analyses** are unchanged in spirit and sharper in practice: never
+  rewrite them. Additions go in as dated notes; when one is overtaken rather
+  than extended, write a new one and mark the old **Superseded**.
+
+Rationale: a record earns trust by being accurate, not by displaying its scars.
+The history mechanism a record already has — git, with commit messages that say
+what was learned — is better at preserving supersession than inline prose, and
+costs the reader nothing.
+
+*Prompted by a working session on a vehicle record where a live diagnostic
+document accumulated four correction blocks in a day, none of which any decision
+had depended on.*
+
+---
+
 ## v1.3.0
 
 > **`method.md` moves to v1.3.0**, so established records are now out of date.

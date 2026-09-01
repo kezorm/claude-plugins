@@ -122,24 +122,40 @@ history report's recall data is secondhand and frequently stale.
 Someone reading later needs to know the disagreement existed. If you resolve it
 silently and your pick was wrong, nothing in the record reveals the error.
 
-## Annotate history, never rewrite it
+## Correct silently; annotate only what was relied on
 
-When new information changes a past conclusion, add a dated note inside the
-original document:
+**The test is not "was this wrong?" It is "did anyone rely on it?"**
+
+Most corrections are a draft being tidied — a misread label, a number
+transcribed wrong, a conclusion that lasted an hour before better information
+arrived. **Fix it and leave no trace in the prose.** The old text is in the
+commit history, dated, with a message saying what changed. A note disowning an
+earlier version costs every future reader attention and teaches them the wrong
+fact on the way to the right one.
+
+Annotate in place in exactly two cases.
+
+**When someone acted on it** — money spent, work skipped, a part ordered, an
+inspection not done. The fact that it was believed is then part of the item's
+history, and goes in the **log** as a dated entry rather than inside a reference
+document:
+
+> **2026-08-27.** The 80,000-mile service was skipped at the August visit
+> because this record said it had been done. That was unsupported. What is known
+> is that no record exists after 41,424 mi.
+
+**When the document is a dated analysis** — a snapshot of what was believed at a
+moment. Never rewrite one. New information that *adds* to it goes in as a dated
+note:
 
 > **Added 2026-08-27.** The service history filed after this analysis was
 > written shows no battery replacement in 14 records spanning 2018–2026. That
 > supports the low-voltage hypothesis above.
 
-And when a past conclusion turns out to be *wrong*, withdraw it in place rather
-than deleting it:
+When one is overtaken rather than extended, write a new analysis and mark the old
+**Superseded**, with a pointer forward.
 
-> **Corrected 2026-08-27.** An earlier version stated the 80,000-mile service
-> "was skipped." That was unsupported and has been withdrawn. What is known is
-> that no record exists after 41,424 mi.
-
-Preserving the correction is more valuable than a clean-looking document. It
-tells a reader the record is maintained by someone who checks.
+A record earns trust by being accurate, not by displaying its scars.
 
 ## Separate urgency from importance
 
