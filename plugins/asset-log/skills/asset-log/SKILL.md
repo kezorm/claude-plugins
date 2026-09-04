@@ -236,6 +236,15 @@ to the original. This is the highest-leverage habit in the whole skill: it makes
 the corpus greppable, and an archived manual then beats the internet for
 questions about that specific thing. `scripts/extract-text` batches it.
 
+**A scan with no text layer produces no `.txt`, and the run reports success.**
+`extract-text` skips what it cannot extract, so `extracted=0 … failed=0` is
+indistinguishable from "nothing to do" — check that a `.txt` actually appeared.
+When a PDF is a pure image (`pdfimages -list` shows images and `pdftotext`
+returns nothing), **type the document out by hand**, save it as the `.txt`
+beside the original, and mark at the top that it is a transcription rather than
+an extraction. Identity documents and certificates arrive this way constantly,
+and an un-greppable one is invisible to every later search.
+
 **Saved email needs the same treatment, and a `.eml` will not grep.** The part
 that matters — the vendor's order table — is usually quoted-printable HTML, so
 `grep` finds nothing and a human reads nothing. `scripts/eml-text` writes a
@@ -261,9 +270,22 @@ the image link.
 `Report_104_S639234483889667912.pdf`. When renaming in bulk, keep a provenance
 file mapping new names to originals.
 
+**Editing an existing document is where a pass fails silently.** A
+find-and-replace that matches nothing reports success, so assert the anchor
+matched before trusting it and check `git status` afterwards. Verify a bulk edit
+by re-deriving the result from the source, never by the loop finishing — a
+partly-failed bulk edit looks exactly like one that worked.
+
 **Then write the digest, then update the top-level status.** Then verify links
 resolve (`scripts/check-links`), then commit with a message stating what was
 *learned*, not what was moved:
+
+> `check-links` validates the `#fragment` as well as the path, and three of its
+> behaviours look like bugs and are not — a heading in a fenced code block is
+> not an anchor, an emoji is dropped from the slug while its invisible variation
+> selector is kept, and **a heading inside a blockquote is not indexed** though
+> GitHub renders it as linkable, so link to the enclosing section instead. Its
+> docstring explains all three; read it before "fixing" a report.
 
 ```
 Add August scan; brake fluid overdue since 2022

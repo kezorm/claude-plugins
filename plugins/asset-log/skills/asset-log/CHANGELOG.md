@@ -22,6 +22,76 @@ listed, because they don't propagate into records.
 
 ---
 
+## v1.6.0
+
+> **`method.md` moves to v1.6.0**, so established records are now out of date.
+> Overwrite `.claude/method.md` from this skill and review the record's
+> `CLAUDE.md`.
+
+**A reading has two parts, and the confidence tag only covers one.** The value,
+and the field it belongs to. Data plates lose their printed field labels long
+before they lose their struck digits, so the field gets assigned by position —
+and that inference then inherits the tag the digits earned.
+
+In one vehicle record a number was read off a plate by the owner, correctly, and
+filed `[confirmed — owner]` as the body number. It was the gearbox number. It
+stood for a week, propagated into three documents, invented an identifier the
+record described as "permanently lost", and blocked an action item that depended
+on the number it had supposedly lost. Nothing in the confidence scheme could
+catch it: the scheme was answering a question that was not in doubt.
+
+The rule is to **say when a field was inferred**, and when a document later
+supplies the same values, to **check the assignments, not just the digits.**
+
+**Write down what a pending document is expected to settle — and what it will
+not.** Two rules in one, from opposite failures in the same session.
+
+A predicted value is falsifiable and worth having: *"the body plate should read
+41531"* was written before the plate was photographed, and when it was read it
+agreed. That agreement is corroboration; a mismatch would have been loud.
+
+The inverse is the commoner error. Two documents in the same record stated that
+an ordered factory certificate "would close" a nine-year gap in the item's
+history. It arrived and did not — it named the distributor and recorded no
+dealer and no registration. A forecast had been written as a certainty, and an
+open question came close to being closed on paper by a document that never
+answered it.
+
+**A filing pass fails silently at the edit.** A find-and-replace that matches
+nothing reports success. Assert the anchor matched, then check `git status`;
+verify a bulk edit by re-deriving the result from the source, never by the loop
+finishing. This fired during the session that prompted this release — an edit
+whose anchor wrapped across a line break differently than assumed — and it was
+caught only because the match count was being asserted.
+
+**Also in this release, not part of the method:**
+
+- **A scan with no text layer produces no `.txt`, and the run reports success.**
+  `extract-text` skips what it cannot extract, so `extracted=0 … failed=0` reads
+  as "nothing to do". Check that a `.txt` appeared; when a PDF is a pure image,
+  type it out by hand and mark the file as a transcription rather than an
+  extraction. Identity documents and certificates arrive this way constantly.
+- **Processing an image does not upgrade it.** Contrast, sharpening and gradient
+  subtraction amplify corrosion, casting texture and paint damage identically to
+  the marks you want, and at useful strength render strokes that are not there.
+  An enhanced crop is a *different proposal*, not a better source. Added to
+  `references/evidence.md`.
+- **`check-links` documents its third surprising behaviour.** A heading inside a
+  blockquote is **not** indexed — the pattern requires the line to start with
+  `#` — while GitHub renders it as linkable, so a link to one is reported broken
+  here and works there. Records use blockquote headings heavily for dated
+  corrections, so this comes up. The emoji/variation-selector and fenced-code
+  behaviours were already documented; this one was not. **Documented, not
+  changed** — see the open question below.
+
+**Open question, deliberately not decided here.** Should `check-links` index
+blockquote headings instead of reporting them broken? It is arguably a false
+positive, and false positives train you to ignore a validator. Against that,
+loosening a validator's semantics across every record risks accepting links that
+do not resolve. Left as documentation until that is decided.
+
+---
+
 ## v1.5.0
 
 > **`method.md` moves to v1.5.0**, so established records are now out of date.

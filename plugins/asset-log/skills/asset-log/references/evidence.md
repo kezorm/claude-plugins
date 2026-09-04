@@ -28,6 +28,19 @@ The failure this prevents: stating that a part number, capacity or interval *is*
 the value because it's typical for the model line. Manufacturers make running
 changes. A specific item's own documentation is the authority.
 
+## Record the prediction, and its limits
+
+When a document gives a value the item itself has not confirmed, write down
+**what the item should show**, as a specific checkable value — *"the plate
+behind the bumper should read `41531`"*. That costs a sentence and turns a
+passive `[verify]` into something that can be **broken**: if it later holds, the
+agreement is corroboration; if it fails, it fails loudly.
+
+**The inverse is the commoner error.** Recording what a pending document *will*
+settle, as a certainty, is how an open question gets closed on paper by a
+document that never answered it. Write what it will **not** settle too, and when
+it arrives, go back to the places that were waiting on it.
+
 ## Absence of a record is not evidence of absence
 
 Write **"no record of X since \<date\>"** — never "X was skipped," "X was
@@ -38,9 +51,7 @@ reported. Nothing in the gap distinguishes them. Not every job is done by a
 professional, and not everything a professional does gets reported to a history
 database.
 
-This mistake is tempting precisely because it usually doesn't change the
-recommendation — which is also why it's pointless. The honest framing gets to
-the same action and survives scrutiny:
+The honest framing reaches the same action and survives scrutiny:
 
 > We don't know whether this was done. It degrades invisibly and can't be
 > assessed by eye. If it was done recently, redoing it costs little. If it
@@ -64,10 +75,28 @@ whether a component is in the frame at all.
 **The rule:** an image is evidence to be checked against the thing itself, never
 a source to be quoted. Crop it, put it in front of the owner, and ask.
 
+**Processing an image does not upgrade it.** Contrast, sharpening and gradient
+subtraction amplify corrosion and damage identically to the marks you want, and
+at useful strength render strokes that are not there. An enhanced crop is a
+*different proposal*, not a better source; commit the honest view beside it.
+
 **Keep the reader distinct from the reading.** `[confirmed — owner]` and
 `[confirmed]` are different claims. Whether a human looked at the object or an
 assistant looked at a picture of it must stay visible, because only one of them
 can be re-checked cheaply later.
+
+### The tag covers the value, not the field
+
+A reading is two claims — **what the characters are**, and **which field they
+belong to**. The tag only ever addresses the first.
+
+Field labels are printed, etched or cast; the values are struck. The labels
+corrode away first, so the field gets assigned by position — and that inference
+silently inherits the tag the digits earned. A number read correctly by the
+owner and filed `[confirmed — owner]` can still be under the wrong heading.
+
+**Say when a field was inferred**, and when a document later supplies the same
+values, **check the assignments, not just the digits.**
 
 ### Asserting absence is the dangerous direction
 
@@ -91,20 +120,6 @@ and summaries exactly as fast as a confirmed one.
 
 Ask instead. The cost of asking is one message; the cost of a wrong identifier
 in a permanent record is every decision made against it afterwards.
-
-### What this looks like in practice
-
-From a vehicle record, over two days, on a single set of photographs of one
-component:
-
-| Assistant's reading | Reality | How it was caught |
-|---|---|---|
-| Two purchased parts *"are not identifiable in any frame"* | Both were plainly in frame | Owner looked at the photographs |
-| A pinion flange is **round**, so the unit is make A | The flange is **square** — make B, the opposite conclusion | Owner walked out to the shelf |
-
-Both were tagged as proposals. Both were wrong. **Neither was caught by
-tagging** — both were caught by a human checking the object. The tag recorded
-uncertainty; it did not reduce it.
 
 ## When sources conflict
 
@@ -145,15 +160,9 @@ document:
 > is that no record exists after 41,424 mi.
 
 **When the document is a dated analysis** — a snapshot of what was believed at a
-moment. Never rewrite one. New information that *adds* to it goes in as a dated
-note:
-
-> **Added 2026-08-27.** The service history filed after this analysis was
-> written shows no battery replacement in 14 records spanning 2018–2026. That
-> supports the low-voltage hypothesis above.
-
-When one is overtaken rather than extended, write a new analysis and mark the old
-**Superseded**, with a pointer forward.
+moment. Never rewrite one: new information that *adds* to it goes in as its own
+dated note, and when one is overtaken rather than extended, write a new analysis
+and mark the old **Superseded**, with a pointer forward.
 
 A record earns trust by being accurate, not by displaying its scars.
 

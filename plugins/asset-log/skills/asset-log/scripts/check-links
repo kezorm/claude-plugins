@@ -17,6 +17,12 @@ Fenced code blocks are skipped, for headings and links alike: documentation
 shows example links to files that deliberately do not exist, and flagging those
 trains you to ignore the output.
 
+A heading inside a blockquote (`> ### Note`) is NOT indexed -- the pattern
+requires the line to start with `#`. GitHub does render it as a linkable
+heading, so a link to one is reported BROKEN here while working on GitHub.
+Link to the enclosing `##`/`###` section instead. Records use blockquote
+headings heavily for dated corrections and asides, so this comes up.
+
 Usage:  bin/check-links [root]     (default: current directory)
 Exit:   0 if all links resolve, 1 otherwise
 """
