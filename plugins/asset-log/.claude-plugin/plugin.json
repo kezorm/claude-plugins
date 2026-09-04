@@ -1,8 +1,8 @@
 {
   "name": "asset-log",
   "displayName": "Asset Log",
-  "version": "1.2.0",
-  "description": "Set up and maintain a durable, self-contained log for something you own - vehicle, house, boat, rental property, tools, equipment - from scattered documents, photos, receipts, inspection reports and manuals.",
+  "version": "1.8.0",
+  "description": "Set up and maintain a durable, self-contained log for something you own - vehicle, house, boat, rental property, homelab, tools, equipment - from scattered documents, photos, receipts, inspection reports and manuals.",
   "author": {
     "name": "Greg Mrozek",
     "url": "https://github.com/kezorm"
