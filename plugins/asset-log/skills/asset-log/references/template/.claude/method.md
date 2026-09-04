@@ -140,10 +140,10 @@ Someone spends money against these conclusions.
   one. Never state a part number, capacity or interval as fact because it is
   typical.
 - **Write down what a pending document is expected to settle — and what it will
-  not.** A predicted value is falsifiable and worth having: *"the plate behind the bumper
-  should read `41531`"* either holds or exposes a problem. An unstated assumption
-  that a document will answer a question is how a gap gets closed on paper and
-  not in fact.
+  not.** A predicted value is falsifiable and worth having: *"the plate behind
+  the bumper should read `41531`"* either holds or exposes a problem. An
+  unstated assumption that a document will answer a question is how a gap gets
+  closed on paper and not in fact.
 - **Absence of a record is not evidence of absence.** Write *"no record of X
   since \<date\>"* — never "was skipped", "was missed", "was never done". Same
   caution for thin data: zero reports on an uncommon item is weak evidence, not
