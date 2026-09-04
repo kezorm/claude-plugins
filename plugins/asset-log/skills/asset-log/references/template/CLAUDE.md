@@ -2,12 +2,14 @@
 
 The shared method for records like this one is imported below and applies in
 full. This file holds only what is specific to **this <<ASSET_KIND>> and this
-repository**.
+repository**, and only as **rules** — this file is read at the start of every
+session, so every line costs on every task. The evidence behind a rule belongs
+in the document that owns the subject, not here.
 
 @.claude/method.md
 
 > `.claude/method.md` is a verbatim copy of the asset-log skill's template,
-> currently **v1.4.0**. Don't edit it — record-specific rules go here instead.
+> currently **v1.5.0**. Don't edit it — record-specific rules go here instead.
 > To bring it up to date, replace that file wholesale from the current skill and
 > review this one for conflicts.
 
@@ -20,12 +22,13 @@ first for this particular thing? Once a manual or spec sheet is archived and
 text-extracted, say so here and tell people to grep it before searching online —
 it is authoritative for this item and faster than anything on the web.)*
 
-## What this record has learned the hard way
+## Evidence rules
 
-*(Concrete instances where a general rule turned out to matter here. A gap in
-the paperwork that turned out to hide real work; a source that proved
-unreliable; a number that was wrong the first time. These are worth more than
-the rules they illustrate, because they are why anyone believes them.)*
+*(What this record has learned the hard way, **stated as rules, one or two lines
+each** — a source that proved unreliable, a number that was wrong the first
+time, a check that has to happen every time. Put the incident, the dates and the
+evidence in the document that owns the subject and link to it. A rules file full
+of war stories stops being read.)*
 
 ## Record-specific conventions
 

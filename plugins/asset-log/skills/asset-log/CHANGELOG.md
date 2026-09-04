@@ -22,6 +22,61 @@ listed, because they don't propagate into records.
 
 ---
 
+## v1.5.0
+
+> **`method.md` moves to v1.5.0**, so established records are now out of date.
+> Overwrite `.claude/method.md` from this skill and review the record's
+> `CLAUDE.md`.
+
+**`method.md` is now rules, not explanations — 276 lines to 193, 2,093 words to
+1,386.** Every rule survived; what went was the prose justifying each one. The
+file is imported at the start of every session in every record, so its length is
+a cost paid on every task, and it had accumulated illustrations, worked examples
+and "why this error is tempting" paragraphs around rules that stand on their
+own. Where a rule is meaningless without its reason, one clause of reason
+stayed.
+
+**The template `CLAUDE.md` was causing the same growth and is fixed.** Its
+guidance invited war stories — *"these are worth more than the rules they
+illustrate"* — and one record's rules file reached 671 lines under it. It now
+asks for the rule in one or two lines with the incident and evidence in the
+document that owns the subject, and says plainly that a rules file full of war
+stories stops being read.
+
+**Purchase paperwork is ranked by how close it is to the money.** Filing an
+order's email trail had no guidance beyond "read it before filing it", and two
+records lost the same fact twice: a line item that was ordered, invoiced in the
+confirmation, and never supplied.
+
+The new **Purchase paperwork: the money is the fact** section in `Filing` ranks
+the documents — payment record, invoice, confirmation-with-per-item-status,
+plain confirmation, dispatch notice — and says to keep the top of the stack.
+
+Three rules come with it:
+
+- **A confirmation is not an invoice.** Nothing amends it after the order is
+  placed, so a cancellation leaves it reading as though the part arrived.
+- **The vendor's own corrected total is not the payment either.** A retailer
+  that cancels a line will recompute its own document and still get it wrong —
+  one dropped the cancelled item from the subtotal while keeping the original
+  tax, overstating the cost by $3.78. Only the refund receipt was right.
+- **Record the vendor's stated reason for a cancellation.** *"Part is no longer
+  available"* is a fact about the world, not about the order.
+
+**Also in this release, not part of the method:**
+
+- **`bin/eml-text`** joins the shared scripts — converts `.eml` to greppable
+  text, keeping both the plain-text and HTML parts, because retailers routinely
+  put the item description only in the HTML.
+- **`bin/archive-page` bug fix.** Every post-processing step keyed off the files
+  that run created, so a page left behind by an interrupted fetch got no `.txt`,
+  no lazy-image promotion and no `<noscript>` unwrap — and the run reported
+  `0 page(s)` beside a healthy file count while looking like a success. It now
+  sweeps the destination for pages with no `.txt` and repairs them. Written up
+  as the twelfth trap in `references/archiving-web-content.md`.
+
+---
+
 ## v1.4.0
 
 > **`method.md` moves to v1.4.0**, so established records are now out of date.

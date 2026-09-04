@@ -244,6 +244,26 @@ def unwrap_noscript(path: str) -> bool:
     return True
 
 
+def _all_pages(dest: str) -> list:
+    """Every HTML file under dest, whenever it was fetched."""
+    return [os.path.join(dp, f)
+            for dp, _, fs in os.walk(dest)
+            for f in fs if f.lower().endswith(('.html', '.htm'))]
+
+
+def _missing_text(path: str) -> bool:
+    """True when a page has no .txt beside it at all.
+
+    Deliberately NOT an mtime comparison. wget rewrites every page it touches
+    at the end of a run (--convert-links), so the .html is always newer than
+    the .txt afterwards and a freshness test fires on every re-run -- which
+    makes an ordinary repeat invocation claim it is repairing an interrupted
+    one. Pages fetched in THIS run get their .txt written unconditionally
+    further down, so absence is the only case this sweep needs to catch.
+    """
+    return not os.path.exists(os.path.splitext(path)[0] + '.txt')
+
+
 def to_text(path: str) -> int:
     """Write a plain-text rendering beside an archived HTML file.
 
@@ -309,12 +329,17 @@ def main() -> int:
 
     # wget exits 8 on a server error for any single requisite -- an advert or a
     # tracking pixel 404ing is normal and does not mean the page failed.
-    if not new:
+    #
+    # "Nothing new" is NOT the same as "nothing to do": re-running over a
+    # directory wget has already filled downloads nothing, and that is exactly
+    # the case where a page left unprocessed by an interrupted run needs
+    # repairing. So check for stale pages before giving up.
+    if not new and not any(_missing_text(p) for p in _all_pages(dest)):
         print('nothing saved.  wget said:')
         print('\n'.join(r.stderr.strip().splitlines()[-8:]))
         return 1
 
-    fixed = ungzip_in_place(new, dest, urls)
+    fixed = ungzip_in_place(new, dest, urls) if new else []
     if fixed:
         new = sorted({os.path.join(dp, f)
                       for dp, _, fs in os.walk(dest) for f in fs} - before)
@@ -322,6 +347,30 @@ def main() -> int:
               % len(fixed))
 
     pages = [f for f in new if f.lower().endswith(('.html', '.htm'))]
+
+    # Every repair below keys off `new` -- the files THIS run created. A run
+    # that was interrupted, or one re-pointed at a directory it already
+    # populated, therefore post-processes nothing: the pages are on disk, so
+    # they are not new, so they get no .txt, no lazy-image promotion and no
+    # <noscript> unwrap. The archive then looks complete and cannot be grepped,
+    # which is the exact failure this tool exists to prevent.
+    #
+    # Caught 2026-09-03 on a Moss Motors page. A first fetch was interrupted
+    # part-way; the second run reported "0 page(s)" beside "53 file(s)" and
+    # wrote no .txt, because the .html had been left behind by the first.
+    #
+    # So sweep the whole destination for pages with no .txt beside them and
+    # repair those too. Cheap -- one stat per page -- and it makes an
+    # interrupted run self-healing on the next invocation.
+    known = set(pages)
+    stale = sorted(p for p in _all_pages(dest)
+                   if p not in known and _missing_text(p))
+    if stale:
+        print('  %d page(s) already on disk had no .txt -- repairing'
+              ' (an earlier run was interrupted before post-processing)'
+              % len(stale))
+        pages = pages + stale
+
     lazy = sum(promote_lazy_images(p) for p in pages)
     if lazy:
         print('  gave %d lazy-loaded image(s) a real src -- they would not have'

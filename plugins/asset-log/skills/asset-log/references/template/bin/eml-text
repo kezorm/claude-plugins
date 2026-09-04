@@ -1,0 +1,123 @@
+#!/usr/bin/env python3
+"""Convert saved email (.eml) into greppable plain text.
+
+A .eml file is nominally text, but the part that matters — the vendor's order
+table — is usually quoted-printable HTML, so `grep` finds nothing and a human
+reads nothing. This writes a .txt beside each .eml: the headers that identify
+the message, then the plain-text part, then the HTML part flattened.
+
+Both parts are kept deliberately. Retailers routinely put the full item
+DESCRIPTION only in the HTML and leave the plain-text part as bare part
+numbers. One vehicle record's parts supplier did exactly that across eight
+orders: the plain text said `BCK-042-0513` and the HTML said "Air Filter
+Element, Paper, Jaguar, Triumph". The HTML is where the archival value is.
+
+Stdlib only, like the other tools shared with the asset-log skill.
+
+    bin/eml-text FILE_OR_DIR...          write FILE.txt beside each FILE.eml
+    bin/eml-text -o OUTDIR FILE...       write into OUTDIR instead
+    bin/eml-text --stdout FILE           print to stdout, write nothing
+"""
+
+import argparse
+import email
+import email.policy
+import glob
+import html
+import os
+import re
+import sys
+
+HEADERS = ("From", "To", "Cc", "Subject", "Date", "Message-ID")
+
+
+def flatten_html(source):
+    """Reduce HTML to readable lines. Not a renderer — just enough to grep."""
+    text = re.sub(r"(?is)<(script|style|head)\b.*?</\1>", " ", source)
+    text = re.sub(r"(?i)<br\s*/?>", "\n", text)
+    text = re.sub(r"(?i)</(tr|p|div|table|h[1-6]|li|ul|ol)>", "\n", text)
+    text = re.sub(r"(?i)</t[dh]>", " | ", text)
+    text = re.sub(r"(?s)<[^>]+>", "", text)
+    text = html.unescape(text)
+    text = text.replace(" ", " ")
+    text = re.sub(r"[ \t]+", " ", text)
+    lines = (line.strip().strip("|").strip() for line in text.split("\n"))
+    out, blank = [], False
+    for line in lines:
+        if line:
+            out.append(line)
+            blank = False
+        elif not blank and out:
+            out.append("")
+            blank = True
+    return "\n".join(out).strip()
+
+
+def render(path):
+    with open(path, "rb") as handle:
+        message = email.message_from_binary_file(handle, policy=email.policy.default)
+
+    chunks = []
+    for header in HEADERS:
+        if message[header]:
+            chunks.append("%s: %s" % (header, message[header]))
+    chunks.append("")
+
+    plain = message.get_body(preferencelist=("plain",))
+    if plain:
+        chunks.append(plain.get_content().strip())
+
+    markup = message.get_body(preferencelist=("html",))
+    if markup:
+        chunks.append("\n===== HTML PART, FLATTENED =====\n")
+        chunks.append(flatten_html(markup.get_content()))
+
+    attachments = [
+        part.get_filename()
+        for part in message.iter_attachments()
+        if part.get_filename()
+    ]
+    if attachments:
+        chunks.append("\n===== ATTACHMENTS =====\n" + "\n".join(attachments))
+
+    return "\n".join(chunks).rstrip() + "\n"
+
+
+def collect(targets):
+    for target in targets:
+        if os.path.isdir(target):
+            for found in sorted(glob.glob(os.path.join(target, "*.eml"))):
+                yield found
+        else:
+            yield target
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    parser.add_argument("paths", nargs="+", help=".eml files, or directories of them")
+    parser.add_argument("-o", "--out-dir", help="write .txt files here instead of beside the source")
+    parser.add_argument("--stdout", action="store_true", help="print instead of writing")
+    args = parser.parse_args()
+
+    files = list(collect(args.paths))
+    if not files:
+        sys.exit("no .eml files found")
+
+    if args.out_dir:
+        os.makedirs(args.out_dir, exist_ok=True)
+
+    for path in files:
+        text = render(path)
+        if args.stdout:
+            sys.stdout.write(text)
+            continue
+        base = os.path.basename(path)
+        base = base[:-4] if base.lower().endswith(".eml") else base
+        target = os.path.join(args.out_dir or os.path.dirname(path), base + ".txt")
+        with open(target, "w") as handle:
+            handle.write(text)
+        print("%s -> %s (%d bytes)" % (path, target, len(text)))
+
+
+if __name__ == "__main__":
+    main()

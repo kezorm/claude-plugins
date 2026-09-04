@@ -236,6 +236,13 @@ to the original. This is the highest-leverage habit in the whole skill: it makes
 the corpus greppable, and an archived manual then beats the internet for
 questions about that specific thing. `scripts/extract-text` batches it.
 
+**Saved email needs the same treatment, and a `.eml` will not grep.** The part
+that matters — the vendor's order table — is usually quoted-printable HTML, so
+`grep` finds nothing and a human reads nothing. `scripts/eml-text` writes a
+`.txt` beside each `.eml` keeping **both** the plain-text and HTML parts:
+retailers routinely put the full item description only in the HTML and leave
+the plain-text part as bare part numbers.
+
 **But treat extracted tables as suspect.** pdftotext rebuilds columns from
 character positions and gets tables wrong silently — in one real record it
 misread a service-interval chart and produced the wrong timing-belt interval for
@@ -342,7 +349,7 @@ Three things to know before the first fetch:
 - **A live page beats a snapshot.** Reach for the Wayback when a page is gone,
   not when it is merely awkward to fetch.
 
-Full method, eleven traps and how each was found:
+Full method, twelve traps and how each was found:
 [references/archiving-web-content.md](references/archiving-web-content.md).
 Tools: `bin/archive-page` fetches and repairs, `bin/archive-check` verifies,
 `bin/archive-browse` serves the archive so a human can read it back.

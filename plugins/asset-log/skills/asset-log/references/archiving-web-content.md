@@ -2,7 +2,7 @@
 
 > **Written from failure, not theory.** Every rule here cost something: it
 > comes from archiving ~250 pages into a working record and getting it wrong in
-> eleven distinct ways first. Nothing in it is specific to any one record.
+> twelve distinct ways first. Nothing in it is specific to any one record.
 >
 > The companion tools are `bin/archive-page` (fetch and repair),
 > `bin/archive-check` (verify) and `bin/archive-browse` (read it back).
@@ -111,7 +111,7 @@ doesn't.
 
 ---
 
-## 3. Eleven traps, each of which produces a file that looks fine
+## 3. Twelve traps, each of which produces a file that looks fine
 
 > **These are checked by `bin/archive-check`.** Run it after any archiving
 > session; it reports every fault below and exits non-zero when a page is
@@ -284,6 +284,37 @@ things to get right:
   once here across seven pages before it was noticed.
 - **Prefer re-fetching cleanly.** A fresh fetch let wget convert the links
   itself and needed 28 repairs where the patched-up copy had needed 1,162.
+
+### An interrupted run leaves pages that the next run will not repair
+
+**The tell is a page count of zero beside a healthy file count.**
+
+`archive-page` post-processes the files *that run created* — that is what makes
+it fast, and it is a trap the moment a fetch is interrupted. Stop a run
+part-way and the `.html` is on disk; run it again and those files are no longer
+new, so **every repair silently skips them**: no `.txt`, no lazy-image
+promotion, no `<noscript>` unwrap. The second run reports something like
+
+    53 file(s), 0 page(s), 22 image(s), 0.8 MB
+
+and looks like a success. It is not: the archive cannot be grepped, and the
+page may not render.
+
+**Read the page count on every run.** `0 page(s)` beside a healthy file count
+means post-processing was skipped, whatever else the line says.
+
+The tool now sweeps the destination for pages with no `.txt` beside them and
+repairs those too, so an interrupted run heals itself next time. Two details
+matter if this is ever reimplemented:
+
+- **"Nothing new downloaded" must not short-circuit the sweep** — re-running
+  over a directory wget has already filled downloads nothing, and that is
+  exactly when a page left behind needs repairing.
+- **Staleness is absence of a `.txt`, not an mtime comparison.** wget rewrites
+  every page it touches at the end of a run (`--convert-links`), so the `.html`
+  is always newer than the `.txt` afterwards; an mtime test fires on every
+  re-run and makes an ordinary repeat invocation announce that it is repairing
+  an interrupted one.
 
 ### A page fetched by hand is HTML and nothing else
 
