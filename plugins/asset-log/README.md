@@ -1,8 +1,9 @@
 # asset-log
 
 Sets up and maintains a durable record for something you own — a vehicle, a
-house, a boat, a rental unit, equipment — out of the scattered documents,
-photos, receipts, inspection reports and manuals that accumulate around it.
+house, a boat, a rental unit, a homelab, equipment — out of the scattered
+documents, photos, receipts, inspection reports and manuals that accumulate
+around it.
 
 The output is plain markdown in a git repository. No app, no database, no schema
 to migrate when you discover you need a field nobody anticipated. It stays

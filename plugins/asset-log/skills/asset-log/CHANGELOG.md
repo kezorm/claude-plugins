@@ -22,6 +22,37 @@ listed, because they don't propagate into records.
 
 ---
 
+## v1.8.0
+
+> **`method.md` moves to v1.8.0**, so established records are now out of date.
+> Overwrite `.claude/method.md` from this skill and review the record's
+> `CLAUDE.md`.
+
+**A scanned PDF with no text layer was slipping through filing.**
+`bin/extract-text` skips what it cannot extract and reports
+`extracted=0 … failed=0`, which is indistinguishable from "nothing to do". The
+rule for catching that — check a `.txt` actually appeared, and type out a
+pure-image PDF by hand, marking it as a transcription — existed only in the
+skill, so it never reached a record. It is now in *Filing*, where identity
+documents and certificates keep arriving this way and an un-greppable one is
+invisible to every later search.
+
+**The method was drifting toward vehicles.** Records built from it now cover
+homelabs, houses and equipment, and its examples had all come from one car.
+Neutralised, with no change of meaning:
+
+- Folder examples name a homelab alongside a vehicle and a house
+- The falsifiable-prediction example is a nameplate serial, not a part behind a
+  bumper
+- The table-extraction warning names "a safety-critical part" rather than an
+  engine
+- Archival facts that look useless today are a paint code, a serial number *and*
+  a firmware version
+- The repetitive-data convention names run hours and monthly draw beside
+  fill-ups
+
+---
+
 ## v1.7.0
 
 > **`method.md` moves to v1.7.0**, so established records are now out of date.

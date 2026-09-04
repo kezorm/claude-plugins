@@ -33,9 +33,9 @@ of war stories stops being read.)*
 
 ## Record-specific conventions
 
-*(What this thing measures itself in — miles, hours, years, cycles — and how
-readings are written. Which limits bind first. Anything the general method
-leaves open that this record has settled.)*
+*(What this thing measures itself in — miles, hours, cycles, kWh, years —
+and how readings are written. Which limits bind first. Anything the general
+method leaves open that this record has settled.)*
 
 ## Filing routing
 

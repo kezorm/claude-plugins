@@ -5,12 +5,11 @@ decisions. Photos of receipts, PDFs, emailed invoices, screenshots, manuals.
 
 Then run `bin/inbox-status`, or ask an assistant to "check the inbox."
 
-Filing puts each document where its **content** says it belongs — making the
+Filing puts each document where its **content** says it belongs, making the
 folder if one doesn't exist yet. There's no fixed destination table here because
-a vehicle and a house need different homes for different things. See
-[`../CLAUDE.md`](../CLAUDE.md).
+different things need different homes. See [`../CLAUDE.md`](../CLAUDE.md).
 
-Originals are preserved: renamed and moved, never rewritten or recompressed.
+**Originals are preserved:** renamed and moved, never rewritten or recompressed.
 
 ## Contents aren't in version control
 

@@ -6,11 +6,12 @@
 ## What it is
 
 *(Make, model, year, serial or ID, and the details you'd need to order a part —
-plus the ones you wouldn't: paint code, dimensions, capacities, where it was
-made. Facts with no current use are the ones you'll be glad of years from now.
-Tag each **[confirmed]** if it came from the thing itself or its official
-documentation, **[verify]** if it's the typical value and hasn't been checked.
-When this section outgrows the README, give it its own file.)*
+plus the ones you wouldn't: paint code, firmware version, dimensions,
+capacities, where it was made. Facts with no current use are the ones you'll be
+glad of years from now. Tag each **[confirmed]** if it came from the thing
+itself or its official documentation, **[verify]** if it's the typical value and
+hasn't been checked. When this section outgrows the README, give it its own
+file.)*
 
 ## Current status
 
