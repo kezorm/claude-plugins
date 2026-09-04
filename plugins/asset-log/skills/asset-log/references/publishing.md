@@ -32,6 +32,13 @@ republishing it is a different act. Read the terms before assuming.
 **Anything about other people.** Prior owners, tenants, contractors, neighbors.
 The owner consented to their own exposure; nobody else did.
 
+**Credentials are not on this list.** A card number or a set of bank details
+should never have reached a commit in the first place — history is permanent, so
+that audit belongs at filing time, not here. If one surfaces during a sharing
+audit, the repository already needs its history rewritten, and that is a
+different and much larger conversation than redacting a price. See *Credentials*
+in the method.
+
 ## What to say
 
 Give a plain inventory rather than a warning, and let them decide:

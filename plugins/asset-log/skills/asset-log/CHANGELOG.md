@@ -22,6 +22,54 @@ listed, because they don't propagate into records.
 
 ---
 
+## v1.7.0
+
+> **`method.md` moves to v1.7.0**, so established records are now out of date.
+> Overwrite `.claude/method.md` from this skill and review the record's
+> `CLAUDE.md`.
+
+**The credential audit was in the wrong place, and it was the only place.**
+
+Until now the method's only guidance on sensitive material sat under *Before
+sharing* — audit the owner's information, third-party copyright, and anything
+about other people, before anyone makes the record public. That is the right
+advice for prices and addresses. **It is the wrong time for credentials.**
+
+Git history is permanent. A card number committed on a Tuesday is in every
+clone that ever existed, and switching a repository to private later recalls it
+no better than switching it to public was reversible. By the time a sharing
+audit runs, the damage is already distributed. The audit has to run **before
+the commit**.
+
+Two documents in one vehicle record made the point. The first was an email in
+which the owner had sent a supplier a full card number, expiry and CVV in
+cleartext; it was caught, and the fix — commit a redacted transcript, keep the
+original outside the repository, say in the transcript where it lives — had to
+be invented locally, because the method offered nothing.
+
+The second was worse, because the local rule that the first produced **ran clean
+over it.** A supplier's invoice printed their own sort code, eight-digit account
+number and IBAN in the payment footer. The check that had been written after the
+first incident was a card-number pattern: sixteen digits in groups of four. A
+sort code is six digits, an account number eight, and an IBAN's groups are not
+4-4-4-4, so it matched none of the three and reported the file safe.
+
+Hence the rule's second half, which is the part that generalises: **match the
+labels, not the number shapes.** Anything that looks like a payment instruction
+gets read, not pattern-matched.
+
+Scope note: the specific expression — which patterns, which currencies, which
+banking conventions — stays in a record's own `CLAUDE.md`. What propagates is
+the timing and the principle.
+
+**Also in this release: the method version is no longer restated in
+`CLAUDE.md`.** Both the template and a live record carried a second copy of the
+version number in prose, and **both were still saying v1.5.0 after the v1.6.0
+bump** — the update replaced `method.md` and missed the restatement, in two
+places independently. The stamp at the top of `method.md` is the single source
+of truth, and the checksum is the real test. `CLAUDE.md` now points at it
+instead of repeating it.
+
 ## v1.6.0
 
 > **`method.md` moves to v1.6.0**, so established records are now out of date.
