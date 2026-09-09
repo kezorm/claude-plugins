@@ -27,6 +27,9 @@ the file, then review that record's `CLAUDE.md` for anything the update now
 duplicates or contradicts. Never hand-edit `method.md`.
 
 **No record yet, or a record with no rules of its own** — the rest of this file.
+
+**The method itself needs changing** — see [Changing the method](#changing-the-method)
+at the end of this file. It is the mode most likely to ship something wrong.
 Setup is where the effort pays.
 
 ## The rules a record runs on
@@ -225,3 +228,25 @@ See [references/publishing.md](references/publishing.md).
   the time anyone considers sharing.
 - **A public version is a separate repository with fresh history**, carrying the
   method and none of the documents.
+
+## Changing the method
+
+**Test a proposed rule against real records before shipping it.** Over one
+release cycle every new rule but one was wrong on first contact, and none of
+them was corrected by more thought — only by running it.
+
+- **Apply it to the record that prompted it, and then to one that did not.**
+  The second is where it breaks. A sizing rule derived from a mature record met
+  a young one and turned out to be measuring the wrong thing entirely.
+- **Instantiate the template.** Greenfield is the only path an existing record
+  never exercises, and it is where a release ships the seed of the problem it
+  just removed.
+- **Verify a trim with `bin/token-sweep`, not by reading the result.**
+  *"The write-up already covers it"* was true four times in six; the two
+  exceptions existed nowhere else.
+- **Write the changelog entry last.** Doing one real migration changes what the
+  migration steps need to say — it did so twice in a single release.
+- **`method.md` is imported into every session of every record**, so audit
+  additions the way you audit a record's `CLAUDE.md`: rules only. A worked
+  example illustrating a rule stated one line above it, and a serial number
+  from one specific vehicle, both survived several passes before anyone looked.

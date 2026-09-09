@@ -37,6 +37,7 @@ still open.
 | Make saved email searchable | `bin/eml-text` |
 | Check nothing's broken | `bin/check-links` |
 | Check nothing's *silently* broken | `bin/record-lint` |
+| Check a rewrite lost nothing | `bin/token-sweep <file>` |
 | Save a web page into the record | `bin/archive-page <url>` |
 | Verify an archived page is complete | `bin/archive-check` |
 | Read the archive back in a browser | `bin/archive-browse` |

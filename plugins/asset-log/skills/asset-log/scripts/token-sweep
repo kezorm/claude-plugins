@@ -1,0 +1,95 @@
+#!/usr/bin/env python3
+"""Did a rewrite lose a fact? Re-derive the answer instead of reading for it.
+
+Trimming a document is the operation most likely to quietly destroy something,
+and the reason is always the same: "the write-up already covers it" feels true
+and often is -- but not always. On the pass this was written for it was true
+four times in six, and the two exceptions were a removable-package list and a
+[verify]-tagged rationale that existed nowhere else.
+
+WHAT IT DOES
+    Pulls every distinctive token out of a file's COMMITTED version -- code
+    spans, part numbers, serials, dates, money, capacities -- and checks each
+    one still appears somewhere in the record's current markdown. Anything that
+    does not is a fact the rewrite dropped, or a deliberate change you should be
+    able to name.
+
+WHY TOKENS AND NOT A DIFF
+    A diff shows what left this file. It cannot tell you whether the thing that
+    left is safe in another one, which is the only question that matters when
+    content is being moved rather than deleted.
+
+FALSE POSITIVES ARE EXPECTED AND CHEAP
+    Rewording drops tokens legitimately -- "21,600 miles" becoming "21,600
+    mi/yr", "SEVEN" becoming "Seven". Read the list; it is short. A run with
+    nothing to say is the common case, and one real finding pays for all of it.
+
+Usage:  bin/token-sweep <file> [ref]      (default ref: HEAD)
+Exit:   0 nothing dropped, 1 tokens dropped, 2 bad usage
+"""
+import re
+import subprocess
+import sys
+
+PATTERNS = [
+    r'`[A-Za-z0-9][A-Za-z0-9._/:+-]{4,}`',      # code spans: part numbers, paths, commands
+    r'\b[A-Z0-9]{5,}\b',                         # serials, model codes, campaign numbers
+    r'\b\d{4}-\d{2}-\d{2}\b',                    # dates
+    r'\$[\d,]+\.\d\d',                           # money
+    r'\b\d[\d,]{2,}\s?(?:mi|miles|km|kg|lb|psi|W|GB|TB|MB|MiB|h|pages)\b',
+]
+NOISE = re.compile(r'^(https?|www\.)')
+
+
+def main():
+    if not 2 <= len(sys.argv) <= 3:
+        print(__doc__.strip().split('\n')[-2], file=sys.stderr)
+        return 2
+    path, ref = sys.argv[1], (sys.argv[2] if len(sys.argv) == 3 else 'HEAD')
+
+    old = subprocess.run(['git', 'show', f'{ref}:{path}'],
+                         capture_output=True, text=True)
+    if old.returncode:
+        print(f'token-sweep: cannot read {path} at {ref}', file=sys.stderr)
+        return 2
+
+    tokens = set()
+    for pattern in PATTERNS:
+        tokens.update(t.strip('`') for t in re.findall(pattern, old.stdout))
+    tokens = {t for t in tokens if len(t) > 4 and not NOISE.match(t)}
+
+    listing = subprocess.run(['git', 'ls-files', '*.md'], capture_output=True, text=True)
+    current = []
+    for f in listing.stdout.split('\n'):
+        if not f:
+            continue
+        try:
+            current.append(open(f, encoding='utf-8', errors='replace').read())
+        except OSError:
+            pass
+    # Untracked files count too -- a JOURNAL.md written this sitting is where
+    # the moved content most often lands.
+    untracked = subprocess.run(['git', 'ls-files', '-o', '--exclude-standard', '*.md'],
+                               capture_output=True, text=True)
+    for f in untracked.stdout.split('\n'):
+        if f:
+            try:
+                current.append(open(f, encoding='utf-8', errors='replace').read())
+            except OSError:
+                pass
+    haystack = '\n'.join(current)
+
+    dropped = sorted(t for t in tokens if t not in haystack)
+    print(f'{len(tokens)} distinctive token(s) in {path} at {ref}')
+    if not dropped:
+        print('none dropped')
+        return 0
+    print(f'{len(dropped)} no longer anywhere in the record:')
+    for t in dropped:
+        print(f'    {t}')
+    print('\nEach is either a fact this rewrite lost, or a rewording you can name.')
+    return 1
+
+
+if __name__ == '__main__':
+    sys.exit(main())
