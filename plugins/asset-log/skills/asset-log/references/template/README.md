@@ -20,7 +20,7 @@ file.)*
 | **Acquired** | *(date, and the reading at the time)* |
 | **Current reading** | *(and as of when)* |
 | **Condition** | *(one honest line)* |
-| **Last work done** | *(date, what, by whom)* |
+| **Last work done** | *(date and **one line** — the detail belongs in [`JOURNAL.md`](JOURNAL.md), which is what stops this row growing into a log)* |
 
 ## Open action items
 

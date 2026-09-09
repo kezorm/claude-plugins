@@ -220,6 +220,9 @@ def main():
           f'(reported as findings past {days} d)')
     print(f'{len(live_md)} live markdown file(s) linted; '
           f'{len([f for f in files if f.endswith(".md")]) - len(live_md)} frozen file(s) skipped')
+    if not files:
+        print('no tracked files yet — nothing to lint. Commit first, then re-run.')
+        return 0
     print('clean' if not total else f'{total} finding(s)')
     return 1 if total else 0
 

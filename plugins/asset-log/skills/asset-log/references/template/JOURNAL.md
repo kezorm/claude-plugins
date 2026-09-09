@@ -14,10 +14,10 @@ often the most useful part. One entry per thread of work, not per day.
 ## <<DATE>> — Record created
 
 **Filed**
-- <what the record was started from>
+- *(what the record was started from)*
 
 **Found**
-- <what those documents say that was not already known>
+- *(what those documents say that nobody already knew)*
 
 **Open**
-- <what is still unknown, and what would settle it>
+- *(what is still unknown, and what would settle it)*
