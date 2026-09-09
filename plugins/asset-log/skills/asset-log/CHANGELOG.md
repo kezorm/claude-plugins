@@ -22,6 +22,29 @@ listed, because they don't propagate into records.
 
 ---
 
+## v1.11.0
+
+> **`method.md` moves to v1.11.0.** Overwrite `.claude/method.md`. Then, if you
+> want the assistant to propose commits rather than make them, say so in that
+> record's `CLAUDE.md` — records happy with direct commits need no change.
+
+**Step 12 prescribed a default nobody chose.** It read *"Commit with a message
+stating what was learned, not what moved"* — an imperative in a checklist the
+assistant follows, so every record inherited automatic committing.
+
+**The fix removes the default rather than reversing it.** Defaulting to
+propose-only would be the same mistake pointing the other way.
+
+- `method.md` step 12 names it as the only outward-facing step in the checklist
+  and puts the choice in `CLAUDE.md`
+- The template `CLAUDE.md` grows a `## Committing` stub with both options and
+  neither pre-selected
+- `SKILL.md` says to ask during setup and write the answer down
+
+The same pause is noted for `git push`, `git reset --hard`, force-pushing, and
+deleting `_inbox/` originals after filing — `rm` skips the Trash, and an
+untracked original exists in exactly one place.
+
 ## v1.10.0
 
 > **`method.md` moves to v1.10.0.** Overwrite `.claude/method.md`, then rename

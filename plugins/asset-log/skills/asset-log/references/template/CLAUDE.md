@@ -67,6 +67,15 @@ state facts conversationally rather than filing documents.)*
 
 ## Committing
 
+*(Pick one, delete the other.)*
+
+- ***Commit directly.***
+- ***Stage and propose** — show what's staged and a draft message; the owner
+  commits. Pick this if you usually want a small edit first.*
+
+*(Either way, same pause before `git push`, `git reset --hard`, force-pushing,
+and deleting `_inbox/` originals after filing — move those out, don't `rm`.)*
+
 Commit messages state the finding, not the file move:
 
 ```

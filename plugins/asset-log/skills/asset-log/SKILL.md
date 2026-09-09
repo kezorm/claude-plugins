@@ -147,9 +147,12 @@ Full detail — routing, deduplication, table pitfalls, commit messages — is i
   nothing reports success. Check `git status` afterwards, and verify a bulk edit
   by re-deriving the result from the source, never by the loop finishing.
 - **Then the digest, then `README.md`, then one `JOURNAL.md` entry for the
-  sitting, then `bin/check-links` and `bin/record-lint`, then commit.**
+  sitting, then `bin/check-links` and `bin/record-lint`, then the commit.**
   Read `check-links`'s docstring before treating its report as a bug — three of
   its behaviours look like bugs and are not.
+- **Ask how the owner wants commits handled; write the answer into
+  `CLAUDE.md`.** Commit directly, or stage and propose a message for them to
+  commit. Don't assume either.
 - **Commit messages state what was learned, not what moved.**
 
 ```
