@@ -65,14 +65,17 @@ in all of them.
 1. Overwrite `.claude/method.md` and `md5sum` it against the template.
 2. Drop the leading `N. ` from each open-item heading. Keep the rest of the
    heading text — that is what the new anchor is made of.
-3. **Rewrite every link that pointed at the old anchor.** Find them with
-   `grep -rn 'README.md#[0-9]'`; `bin/check-links` proves the result, and it
-   validates fragments as well as paths.
+3. **Rewrite every link that pointed at the old anchor — in every document,
+   frozen ones included.** Find them with `grep -rn 'README.md#[0-9]'`;
+   `bin/check-links` proves the result, and it validates fragments as well as
+   paths. **A frozen document keeps its wording and still gets its link targets
+   repointed**: `JOURNAL.md` saying *"open item 10"* is true of that day, and
+   the link beneath it still has to resolve.
 4. **Reword `item N` in prose** — `grep -rn 'item [0-9]'`. Name the item
    instead. This is the larger half of the work and the part that improves the
-   record rather than merely preserving it. **Leave `JOURNAL.md` alone**: it is
-   frozen, and an entry saying *"raised to item 3"* records what was true that
-   day.
+   record rather than merely preserving it. **Link text counts**: an anchor can
+   be rewritten correctly while the visible `[item 2](...)` still reads wrong,
+   and because the link resolves, `check-links` passes. Only reading catches it.
 5. Now apply the v1.9.0 rule that the numbers were blocking: a ticked item is
    not an open item, so its line goes.
 
