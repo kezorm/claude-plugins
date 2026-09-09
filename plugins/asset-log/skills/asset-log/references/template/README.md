@@ -34,7 +34,7 @@ thing with a real deadline first and say what the deadline actually is.
 For each item worth its place: **what**, **why it matters**, **what it costs**,
 and **what would change your mind**.
 
-### 1. *(the item with a real deadline, if there is one)*
+### *(name the item — the one with a real deadline goes first)*
 
 - [ ] *(the concrete step)*
 

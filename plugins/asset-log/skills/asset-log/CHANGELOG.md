@@ -22,6 +22,60 @@ listed, because they don't propagate into records.
 
 ---
 
+## v1.10.0
+
+> **`method.md` moves to v1.10.0.** Overwrite `.claude/method.md`, then rename
+> numbered open items and rewrite the links that pointed at them. Steps below.
+
+**Numbered open items were an address pretending to be a name.** The number did
+two jobs that contradict each other: it ranked the item, which is mutable by
+design, and it served as the heading's anchor, which has to be stable. Every
+symptom followed from that.
+
+- One record had **two items numbered 4** — a renumbering that half-happened,
+  leaving a cross-reference that resolved to both.
+- Another had **two completed items frozen in the middle of the list**, because
+  eight documents anchored to `#2-order-a-jaguar-heritage-certificate…`. The
+  v1.9.0 rule *"a ticked item is not an open item"* could not be applied there
+  at all.
+- **Re-ranking was equally blocked**: promoting an item broke every link to it,
+  so the ranking a record most wants to change is the one it cannot.
+
+**Items are now named, not numbered.** Their order in the document *is* the
+ranking — the number was always redundant with position, and the template
+already said to put the thing with a real deadline first. The anchor becomes the
+name, which survives re-ranking; a finished item simply leaves, with no
+renumbering and no gaps.
+
+This is the record's own *"hosts are named, not addressed"* rule applied one
+level up, and it reads better: *"the subframe survey"* means something standing
+alone, where *"item 7"* needs the list in front of you.
+
+**Two things also left `method.md`**, found by auditing it the way a record's
+`CLAUDE.md` gets audited — it is imported every session of every record, so the
+same *every line costs* rule applies. The worked commit-message example went: it
+illustrated a rule the step above it already states, in one record's idiom, and
+a record that wants a template has one in its own `CLAUDE.md`. And a predicted
+serial number that had leaked in from a specific vehicle is now generic — a
+concrete value from one record has no place in the file that is byte-identical
+in all of them.
+
+### Migrating a record
+
+1. Overwrite `.claude/method.md` and `md5sum` it against the template.
+2. Drop the leading `N. ` from each open-item heading. Keep the rest of the
+   heading text — that is what the new anchor is made of.
+3. **Rewrite every link that pointed at the old anchor.** Find them with
+   `grep -rn 'README.md#[0-9]'`; `bin/check-links` proves the result, and it
+   validates fragments as well as paths.
+4. **Reword `item N` in prose** — `grep -rn 'item [0-9]'`. Name the item
+   instead. This is the larger half of the work and the part that improves the
+   record rather than merely preserving it. **Leave `JOURNAL.md` alone**: it is
+   frozen, and an entry saying *"raised to item 3"* records what was true that
+   day.
+5. Now apply the v1.9.0 rule that the numbers were blocking: a ticked item is
+   not an open item, so its line goes.
+
 ## v1.9.0
 
 > **`method.md` moves to v1.9.0**, so established records are now out of date.
