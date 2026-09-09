@@ -61,12 +61,12 @@ warns them about it.)*
 1. Drop anything new in [`_inbox/`](_inbox/)
 2. File it; write up what it says
 3. **Update this document** — status, and tick or add open items
-4. `bin/check-links`, then commit with a message saying what you *learned*
+4. **Append one entry to [`JOURNAL.md`](JOURNAL.md)** for the sitting
+5. `bin/check-links` and `bin/record-lint`, then commit with a message saying
+   what you *learned*
 
-## Session log
+## History
 
-| Date | What happened |
-|---|---|
-| <<DATE>> | Record created |
-
-*Last updated: <<DATE>>*
+**[`JOURNAL.md`](JOURNAL.md)** — what was done and learned, newest first.
+It is kept out of this document deliberately: this one is rewritten to stay
+true, and history must not be.

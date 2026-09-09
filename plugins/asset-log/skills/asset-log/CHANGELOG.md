@@ -22,6 +22,89 @@ listed, because they don't propagate into records.
 
 ---
 
+## v1.9.0
+
+> **`method.md` moves to v1.9.0**, so established records are now out of date.
+> Overwrite `.claude/method.md`, add `JOURNAL.md`, copy `bin/record-lint`, and
+> review the record's `CLAUDE.md`. Steps and two traps at the end of this entry.
+
+**A record without a journal grows one inside its status document.** Every
+record scaffolded from this skill shipped a `## Session log` table in
+`README.md`, and the method named a *Logs* role without naming a file — so
+history had nowhere else to go. On one record that table reached **82 KB**, and
+`README.md`'s status row had become a **9,841-character reverse-chronological
+duplicate of its tail**: two chronologies in one file running opposite
+directions. **A blank line after the table's third row had also ended the
+table**, so 57 of its 60 entries had been rendering as raw pipe-delimited text
+since the day it was created, and nothing noticed.
+
+`JOURNAL.md` is now a named role — new entries at the top, past entries never
+rewritten — and `README.md` carries no history at all. The template ships the
+file and its `## Session log` table is gone.
+
+**`bin/record-lint` — the checks for failures that report success.** v1.8.0
+added the rule *"check that a `.txt` actually appeared"*. The rule did not work.
+Across five records this script found **seven image-only scans whose extraction
+had reported success** — thirteen in one record once the measure was corrected —
+including a **48-page factory manual that extracted to 48 form-feed characters
+and no text**, and another whose entire extracted content was the download
+site's watermark. **Anything needing a person to remember it will eventually not
+happen**, which is the argument for a check rather than a rule.
+
+It measures text **per page**, using the form feed `pdftotext` writes for each
+one, because a fixed byte threshold misses a 149-page manual whose only text is
+a watermark. It also checks dated export filenames, calendar limits in
+`## Upcoming` that have passed, and `[verify]` tags older than 90 days — and it
+lints **only the rewritable layer**, since a stale claim in the journal or in a
+dated analysis is correct by design.
+
+**An open item is a triage entry, not a write-up.** Measured across five
+records, open items grow with a record's *age* rather than with its author's
+discipline: the two most mature had median items of 45 and 54 lines against 14
+to 20 in the younger three. Trimming one record against the new rule took its
+open items from **741 lines to 394**, and **136 of those lines were ticked
+items** whose findings already existed in both the journal and a subject
+write-up. **A ticked item is not an open item.** Judge length by reasoning, not
+by task count.
+
+**Two guardrails for dated analyses**, borrowed from the sibling `journal`
+skill: two credible alternatives minimum, because one strawman beside the winner
+is not a comparison; and all-upside consequences mean you stopped early.
+
+**Also:** a generated file must say so in its first lines and name the script.
+**Run the checks rather than performing them by eye** — an authored sweep in
+place of a script reports clean on a record that isn't — and add a new check
+only if it can be silent on a healthy record.
+
+**One changelog fault is fixed here too.** `v1.2.0` was filed below `v1.0.0`, so
+a record on v1.1.0 following *"read the entries below that are newer"* skipped
+it entirely. That is the entry where `check-links` gained anchor validation, and
+a record upgraded from v1.1.0 was found still running the 70-line checker,
+reporting `ok` while blind to broken anchors.
+
+### Migrating a record
+
+1. Overwrite `.claude/method.md`, then `md5sum` it against the template. **The
+   bytes are the version, not the heading** — a copy taken mid-edit carries the
+   right number and the wrong content, and the checksum is the only thing that
+   catches it.
+2. Copy any missing `bin/` scripts, `record-lint` included.
+3. Convert `## Session log` into `JOURNAL.md`, and **check its existing
+   direction first.** Records differ — some appended at the bottom, others
+   prepended at the top — and where entries share a date the dates cannot tell
+   you, so read the git history. Converting the wrong way silently inverts the
+   record's history.
+4. **Check `## Repository facts` against `git remote get-url origin`.** One
+   record claimed *"none — local only"* about a repository that had been on a
+   private GitHub remote for eleven days. A deterministic claim that drifts
+   silently, and the one carrying privacy consequences.
+5. Review the record's `CLAUDE.md` for what the update duplicates or
+   contradicts, and add `record-lint` to whatever commit ritual it states.
+6. Apply the open-item rule, then **verify by sweeping every distinctive token
+   in the old text against the whole record.** *"The write-up already covers
+   it"* was true four times in six on the first record tried; the two
+   exceptions were real losses.
+
 ## v1.8.0
 
 > **`method.md` moves to v1.8.0**, so established records are now out of date.

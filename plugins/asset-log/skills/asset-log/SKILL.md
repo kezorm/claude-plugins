@@ -46,6 +46,10 @@ has none.** The three that carry the most weight:
    the record exists in ten years.
 3. **Mark confidence.** `[confirmed]` from the thing itself or its official
    documentation; `[verify]` for a value that is typical but unchecked.
+4. **Keep history out of `README.md`.** That document is rewritten to stay true,
+   so history cannot live in it; it goes in `JOURNAL.md`, newest first. A record
+   without a journal does not go without one — it grows one inside the status
+   document, and then neither file can do its job.
 
 ## Setting up a new record
 
@@ -64,7 +68,8 @@ Then create only this, copied from
 ```
 .
 ├── _inbox/            drop zone; contents gitignored until triaged
-├── README.md          current status, open items, what's coming
+├── README.md          current status, open items, what's coming — no history
+├── JOURNAL.md         what each sitting did and learned, newest first
 ├── CLAUDE.md          THIS record's specifics; imports the method below
 ├── .claude/method.md  the shared method, verbatim, versioned
 └── bin/               the scripts
@@ -99,7 +104,7 @@ Check with `command -v` rather than assuming. Degrade quietly and say so once.
 | Needs | Used for | Without it |
 |---|---|---|
 | A filesystem and shell | Everything | On a surface with no filesystem (claude.ai chat) this skill mostly cannot run. Say so, and offer what is possible: read what the user pastes, produce the analysis and a README they save themselves. |
-| `pdftotext` (poppler) | Text beside every PDF | Offer the install (`brew install poppler` / `apt install poppler-utils`). If refused, read PDFs directly and transcribe key figures by hand so the numbers stay searchable. |
+| `pdftotext` (poppler) | Text beside every PDF, checked by `bin/record-lint` | Offer the install (`brew install poppler` / `apt install poppler-utils`). If refused, read PDFs directly and transcribe key figures by hand so the numbers stay searchable. |
 | `docling` *(optional)* | Reliable table extraction | Not required. `uvx docling --to md <pdf>` needs no install but downloads models on first run. Worth it when a document's meaning is in its tables. |
 | `wget` | `bin/archive-page` | Only for archiving from the web. Without it, `curl` the HTML alone and say plainly that the page's images were not kept. |
 | `git` | History, and "what did we know when" | Plain dated folders work. State the tradeoff once and move on. |
@@ -138,7 +143,8 @@ Full detail — routing, deduplication, table pitfalls, commit messages — is i
 - **Assert that an edit's anchor matched.** A find-and-replace that matches
   nothing reports success. Check `git status` afterwards, and verify a bulk edit
   by re-deriving the result from the source, never by the loop finishing.
-- **Then the digest, then `README.md`, then `bin/check-links`, then commit.**
+- **Then the digest, then `README.md`, then one `JOURNAL.md` entry for the
+  sitting, then `bin/check-links` and `bin/record-lint`, then commit.**
   Read `check-links`'s docstring before treating its report as a bug — three of
   its behaviours look like bugs and are not.
 - **Commit messages state what was learned, not what moved.**

@@ -18,11 +18,15 @@ content.
 **When something new arrives, update three things in one sitting:**
 
 1. **The document** — filed, original unchanged
-2. **Whatever log or write-up it belongs to**
+2. **Whatever write-up it belongs to**
 3. **`README.md`** — the status and open items
 
 The third is the one people skip, and skipping it is how a folder of documents
 becomes a folder nobody reads.
+
+Then, once per sitting rather than once per document, **append an entry to
+`JOURNAL.md`** — what you filed, what you found, what it corrected, what is
+still open.
 
 ## Commands
 
@@ -32,6 +36,7 @@ becomes a folder nobody reads.
 | Make PDFs searchable | `bin/extract-text` |
 | Make saved email searchable | `bin/eml-text` |
 | Check nothing's broken | `bin/check-links` |
+| Check nothing's *silently* broken | `bin/record-lint` |
 | Save a web page into the record | `bin/archive-page <url>` |
 | Verify an archived page is complete | `bin/archive-check` |
 | Read the archive back in a browser | `bin/archive-browse` |

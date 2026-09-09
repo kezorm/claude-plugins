@@ -1,0 +1,228 @@
+#!/usr/bin/env python3
+"""Health-check the record's *rewritable* layer for the failures that are silent.
+
+`check-links` catches breakage you can see. This catches the class you cannot:
+an extraction that reported success and produced nothing, a calendar limit that
+quietly went past, a `[verify]` nobody ever came back to. None of these announce
+themselves, and all of them are documented traps in `.claude/method.md`.
+
+WHAT IT DELIBERATELY DOES NOT LINT, AND WHY
+    The method gives documents different roles, and only some are rewritable.
+    `JOURNAL.md` is append-only history, `decisions/` holds dated analyses that
+    are *never* rewritten, and `exports/` holds point-in-time evidence. A stale
+    claim in any of those is CORRECT -- it is what was believed on that date.
+    Linting them produces noise, and a report that cries wolf is worse than no
+    report, because people stop reading it.
+
+THE CHECKS
+
+  pdf-without-text        A PDF with no `.txt` beside it. Un-greppable, so
+                          invisible to every later search. Identity documents
+                          and certificates arrive this way constantly.
+
+  text-extraction-empty   The SILENT variant, and the reason this script exists.
+                          `bin/extract-text` reports `extracted=0 ... failed=0`
+                          on an image-only scan, which is indistinguishable from
+                          "nothing to do". Measured per PAGE, using the form feed
+                          pdftotext emits for each one -- a fixed byte threshold
+                          misses a 149-page parts fiche whose only text is the
+                          download site's watermark, which is bigger than an
+                          empty 3-page scan. Type such a file out by hand and
+                          mark it as a transcription.
+
+  export-without-date     An undated config export is unusable -- nobody can tell
+                          whether it predates the change being investigated.
+
+  calendar-limit-passed   A deadline in `## Upcoming` that has gone by without
+                          being marked. Scoped hard: the date must be governed by
+                          expiry/EOL/renewal wording within 25 characters, or the
+                          check fires on every evidence date in the table. Tested
+                          against positive controls -- see PRECISION below.
+
+  decision-metadata       A decision document with no frontmatter, a missing
+                          field, or a status outside the allowed set -- and a
+                          `decisions/README.md` that no longer matches what
+                          `bin/decisions-index` would generate. Skipped entirely
+                          where there is no `decisions/` directory, so the same
+                          script runs in every record.
+
+  verify-unchecked        `[verify]` means "typical, not yet checked against this
+                          one". Aged by `git blame`; only tags older than the
+                          threshold are findings. The count is always reported so
+                          the number stays visible while the record is young.
+
+PRECISION IS THE POINT
+    Earlier drafts of `calendar-limit-passed` matched any date near the word
+    "end" and flagged `front end alignment` in a service history. The rule that
+    survived: a check that produces false positives gets ignored, and then the
+    true positive it finally catches gets ignored too. If a check cannot be made
+    quiet on a clean record, it belongs in the judgment pass below, not here.
+
+WHAT THIS CANNOT DO
+    Contradictions between write-ups, claims a newer source superseded, and
+    concepts discussed everywhere but written up nowhere all need reading. Run
+    those as a judgment pass over the live layer; this script only clears the
+    ground so that pass is not spent on mechanical faults.
+
+Usage:  bin/record-lint [root] [--days N]     (default: . and 90)
+Exit:   0 clean, 1 findings
+"""
+import datetime
+import os
+import re
+import subprocess
+import sys
+
+MEDIA_OK = {'.jpg', '.jpeg', '.png', '.heic', '.gif', '.mp4', '.mov', '.webp'}
+DEADLINE = re.compile(
+    r'(expir\w*|EOL|end of (?:life|support|maintenance|servicing)|renew\w*|due)'
+    r'[^.]{0,25}?\b(20\d\d)-(\d\d)-(\d\d)\b', re.I)
+ALREADY_FLAGGED = re.compile(r'passed|already|ended|expired|no longer|ran out|\*\*Yes[:,]', re.I)
+DATED_NAME = re.compile(r'-\d{4}-\d{2}-\d{2}\.[A-Za-z0-9]+$')
+MIN_CHARS_PER_PAGE = 20   # a real text layer yields hundreds; a watermark yields ~1
+DECISION_STATUSES = ('open', 'decided', 'executed', 'superseded')
+
+
+def is_frozen(path):
+    """True for layers that must never be linted -- see the docstring."""
+    return (os.path.basename(path) in ('JOURNAL.md', 'CLAUDE.md')
+            or path.startswith(('.claude/', 'decisions/', '_inbox/', 'exports/'))
+            or '/exports/' in path)
+
+
+def main():
+    args = [a for a in sys.argv[1:]]
+    days = 90
+    if '--days' in args:
+        i = args.index('--days')
+        days = int(args[i + 1])
+        del args[i:i + 2]
+    root = args[0] if args else '.'
+    today = datetime.date.today()
+
+    ls = subprocess.run(['git', '-C', root, 'ls-files'], capture_output=True, text=True)
+    if ls.returncode:
+        print('record-lint: not a git repository', file=sys.stderr)
+        return 2
+    files = [p for p in ls.stdout.split('\n') if p]
+    live_md = [f for f in files if f.endswith('.md') and not is_frozen(f)]
+    found = {}
+
+    def add(check, detail):
+        found.setdefault(check, []).append(detail)
+
+    for f in files:
+        if not f.endswith('.pdf'):
+            continue
+        txt = f[:-4] + '.txt'
+        if txt not in files:
+            add('pdf-without-text', f)
+            continue
+        try:
+            body = open(os.path.join(root, txt), encoding='utf-8', errors='replace').read()
+        except OSError:
+            continue
+        # Measure text PER PAGE, not in total. pdftotext emits one form feed per
+        # page, so the artefact carries its own page count and no second tool is
+        # needed. An absolute byte threshold does not work: a 149-page fiche
+        # whose only text is a download watermark still clears any fixed size.
+        pages = body.count('\f') or 1
+        real = len(re.sub(r'\s', '', body.replace('\f', '')))
+        thin = pages >= 3 and real / pages < MIN_CHARS_PER_PAGE
+        # A one- or two-page image scan has too few pages for the ratio to mean
+        # anything, and is the commonest shape for a title or a bill of sale.
+        try:
+            empty = real == 0 and os.path.getsize(os.path.join(root, f)) > 50_000
+        except OSError:
+            empty = False
+        if thin or empty:
+            add('text-extraction-empty',
+                f'{txt} — {real} char(s) of text across {pages} page(s)')
+
+    for f in files:
+        if ('/exports/' in f or f.startswith('exports/')) and not DATED_NAME.search(f):
+            add('export-without-date', f)
+
+    for path in live_md:
+        try:
+            lines = open(os.path.join(root, path), encoding='utf-8').read().split('\n')
+        except OSError:
+            continue
+        in_upcoming = False
+        for n, line in enumerate(lines, 1):
+            if line.startswith('## '):
+                in_upcoming = line.lower().startswith('## upcoming')
+                continue
+            if not in_upcoming or ALREADY_FLAGGED.search(line):
+                continue
+            for m in DEADLINE.finditer(line):
+                try:
+                    when = datetime.date(int(m.group(2)), int(m.group(3)), int(m.group(4)))
+                except ValueError:
+                    continue
+                if when < today:
+                    add('calendar-limit-passed',
+                        f'{path}:{n} — {when} — {line.strip()[:70]}')
+
+    decisions_dir = os.path.join(root, 'decisions')
+    if os.path.isdir(decisions_dir):
+        for name in sorted(os.listdir(decisions_dir)):
+            if not name.endswith('.md') or name == 'README.md':
+                continue
+            head = open(os.path.join(decisions_dir, name), encoding='utf-8').read(2000)
+            if not head.startswith('---\n'):
+                add('decision-metadata', f'decisions/{name} — no frontmatter')
+                continue
+            block = head[4:head.find('\n---\n', 3)]
+            keys = dict(l.split(':', 1) for l in block.split('\n') if ':' in l)
+            for required in ('date', 'status', 'summary'):
+                if required not in keys:
+                    add('decision-metadata', f'decisions/{name} — no `{required}`')
+            state = keys.get('status', '').strip()
+            if state and state not in DECISION_STATUSES:
+                add('decision-metadata', f'decisions/{name} — status {state!r} not in '
+                                         f'{", ".join(DECISION_STATUSES)}')
+        index = subprocess.run([os.path.join(root, 'bin', 'decisions-index'), '--check'],
+                               cwd=root, capture_output=True, text=True)
+        if index.returncode == 1:
+            add('decision-metadata',
+                'decisions/README.md is stale — re-run bin/decisions-index')
+
+    verify_total, verify_oldest = 0, 0
+    for path in live_md:
+        try:
+            if '[verify' not in open(os.path.join(root, path), encoding='utf-8').read():
+                continue
+        except OSError:
+            continue
+        blame = subprocess.run(['git', '-C', root, 'blame', '--line-porcelain', '--', path],
+                               capture_output=True, text=True).stdout
+        stamp = None
+        for line in blame.split('\n'):
+            if line.startswith('author-time '):
+                stamp = int(line.split()[1])
+            elif line.startswith('\t') and '[verify' in line and stamp:
+                age = (today - datetime.date.fromtimestamp(stamp)).days
+                verify_total += 1
+                verify_oldest = max(verify_oldest, age)
+                if age > days:
+                    add('verify-unchecked', f'{age} d — {path} — {line[1:].strip()[:70]}')
+
+    order = ['pdf-without-text', 'text-extraction-empty', 'export-without-date',
+             'calendar-limit-passed', 'decision-metadata', 'verify-unchecked']
+    total = sum(len(found.get(k, ())) for k in order)
+    for check in order:
+        hits = found.get(check, [])
+        print(f'{check:24} {len(hits)}')
+        for detail in hits:
+            print(f'    {detail}')
+    print(f'\n{verify_total} [verify] tag(s) in the live layer, oldest {verify_oldest} d '
+          f'(reported as findings past {days} d)')
+    print(f'{len(live_md)} live markdown file(s) linted; '
+          f'{len([f for f in files if f.endswith(".md")]) - len(live_md)} frozen file(s) skipped')
+    print('clean' if not total else f'{total} finding(s)')
+    return 1 if total else 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())
